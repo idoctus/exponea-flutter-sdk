@@ -2,8 +2,10 @@
 title: iOS push notifications for Flutter SDK
 excerpt: Enable push notifications on iOS using the Flutter SDK
 slug: flutter-sdk-push-ios
-categorySlug: integrations
-parentDocSlug: flutter-sdk-push-notifications
+category:
+  uri: /branches/2/categories/guides/Developers
+parent:
+  uri: flutter-sdk-push-notifications
 ---
 
 The Flutter SDK relies on the native iOS SDK to handle push notifications on iOS. This guide provides shortened instructions for iOS within the context of the Flutter SDK and refers to the [push notifications documentation for the iOS SDK](https://documentation.bloomreach.com/engagement/docs/ios-sdk-push-notifications) for details.

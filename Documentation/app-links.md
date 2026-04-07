@@ -2,8 +2,10 @@
 title: Links for Flutter SDK
 excerpt: Enable and track Android App Links and iOS Universal Links in your app using the Flutter SDK
 slug: flutter-sdk-links
-categorySlug: integrations
-parentDocSlug: flutter-sdk
+category:
+  uri: /branches/2/categories/guides/Developers
+parent:
+  uri: flutter-sdk
 ---
 
 Android App Links and iOS Universal Links allow the links you send through Engagement to open directly in your mobile application without any redirects that would hinder your users' experience.

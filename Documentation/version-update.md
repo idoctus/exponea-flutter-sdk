@@ -2,8 +2,10 @@
 title: Flutter SDK version update guide
 excerpt: Update Exponea Flutter SDK in your app to a new version
 slug: flutter-sdk-version-update
-categorySlug: integrations
-parentDocSlug: flutter-sdk-release-notes
+category:
+  uri: /branches/2/categories/guides/Developers
+parent:
+  uri: flutter-sdk-release-notes
 ---
 
 This guide will help you upgrade your Exponea SDK to the new version.

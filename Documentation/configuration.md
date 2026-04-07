@@ -2,8 +2,10 @@
 title: Configuration for Flutter SDK
 excerpt: Full configuration reference for the Flutter SDK
 slug: flutter-sdk-configuration
-categorySlug: integrations
-parentDocSlug: flutter-sdk-setup
+category:
+  uri: /branches/2/categories/guides/Developers
+parent:
+  uri: flutter-sdk-setup
 ---
 
 This page provides an overview of all configuration parameters for the SDK. In addition to the universal parameters, there are Android-specific and iOS-specific parameters.

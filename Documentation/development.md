@@ -2,8 +2,10 @@
 title: Development for Flutter SDK
 excerpt: Work with the Flutter SDK source code.
 slug: flutter-sdk-development
-categorySlug: integrations
-parentDocSlug: flutter-sdk
+category:
+  uri: /branches/2/categories/guides/Developers
+parent:
+  uri: flutter-sdk
 ---
 
 ## SDK development guide

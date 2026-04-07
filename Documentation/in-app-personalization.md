@@ -2,8 +2,10 @@
 title: In-app personalization for Flutter SDK
 excerpt: Display in-app personalization based on definitions set up in Engagement using the Flutter SDK
 slug: flutter-sdk-in-app-personalization
-categorySlug: integrations
-parentDocSlug: flutter-sdk
+category:
+  uri: /branches/2/categories/guides/Developers
+parent:
+  uri: flutter-sdk
 ---
 
 Through in-app personalization, Engagement provides ways to display campaigns within your mobile applications. In-app personalization can take the form of in-app messages that appear as overlays or pop-ups, or in-app content blocks that appear in line with the app's existing content.

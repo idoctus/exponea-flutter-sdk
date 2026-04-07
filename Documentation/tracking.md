@@ -2,8 +2,10 @@
 title: Tracking for Flutter SDK
 excerpt: Track customers and events using the Flutter SDK
 slug: flutter-sdk-tracking
-categorySlug: integrations
-parentDocSlug: flutter-sdk
+category:
+  uri: /branches/2/categories/guides/Developers
+parent:
+  uri: flutter-sdk
 ---
 
 You can track events in Engagement to learn more about your app’s usage patterns and to segment your customers by their interactions.

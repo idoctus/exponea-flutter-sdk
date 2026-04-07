@@ -2,7 +2,8 @@
 title: Flutter SDK
 excerpt: Exponea SDK for Flutter
 slug: flutter-sdk
-categorySlug: integrations
+category:
+  uri: /branches/2/categories/guides/Developers
 ---
 
 > 📘 

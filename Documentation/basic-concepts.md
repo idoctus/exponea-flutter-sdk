@@ -2,8 +2,10 @@
 title: Basic concepts for Flutter SDK
 excerpt: Basic concepts of the Flutter SDK and some troubleshooting tips.
 slug: flutter-sdk-basic-concepts
-categorySlug: integrations
-parentDocSlug: flutter-sdk
+category:
+  uri: /branches/2/categories/guides/Developers
+parent:
+  uri: flutter-sdk
 ---
 
 ## Basic concepts
