@@ -1,11 +1,12 @@
 ---
 title: Initial setup for Flutter SDK
-excerpt: Install and configure the Flutter SDK
 slug: flutter-sdk-setup
 category:
   uri: /branches/2/categories/guides/Developers
 parent:
   uri: flutter-sdk
+content:
+  excerpt: Install and configure the Flutter SDK
 ---
 
 ## Install the SDK

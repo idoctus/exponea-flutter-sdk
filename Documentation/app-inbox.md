@@ -1,11 +1,12 @@
 ---
 title: App Inbox for Flutter SDK
-excerpt: Add a message inbox to your app using the Flutter SDK
 slug: flutter-sdk-app-inbox
 category:
   uri: /branches/2/categories/guides/Developers
 parent:
   uri: flutter-sdk
+content:
+  excerpt: Add a message inbox to your app using the Flutter SDK
 ---
 
 The App Inbox feature creates a mobile communication channel that lives directly in your app. This inbox can receive messages from marketing campaigns and stores mobile push notifications for a set time period.

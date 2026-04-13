@@ -1,11 +1,12 @@
 ---
 title: Tracking consent for Flutter SDK
-excerpt: Manage tracking consent using the Flutter SDK.
 slug: flutter-sdk-tracking-consent
 category:
   uri: /branches/2/categories/guides/Developers
 parent:
   uri: flutter-sdk-tracking
+content:
+  excerpt: Manage tracking consent using the Flutter SDK.
 ---
 
 Depending on local data access regulations, access to data on a user's device may require explicit consent. To follow such requirements, Engagement allows you to enable the standalone "tracking consent" feature. This feature activates the tracking consent option for in-app messages, in-app content blocks, and mobile push notifications.

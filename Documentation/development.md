@@ -1,11 +1,12 @@
 ---
 title: Development for Flutter SDK
-excerpt: Work with the Flutter SDK source code.
 slug: flutter-sdk-development
 category:
   uri: /branches/2/categories/guides/Developers
 parent:
   uri: flutter-sdk
+content:
+  excerpt: Work with the Flutter SDK source code.
 ---
 
 ## SDK development guide

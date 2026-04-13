@@ -1,11 +1,12 @@
 ---
 title: Fetch data for Flutter SDK
-excerpt: Fetch data from Bloomreach Engagement using the Flutter SDK
 slug: flutter-sdk-fetch-data
 category:
   uri: /branches/2/categories/guides/Developers
 parent:
   uri: flutter-sdk
+content:
+  excerpt: Fetch data from Bloomreach Engagement using the Flutter SDK
 ---
 
 The SDK provides methods to retrieve data from the Engagement platform.

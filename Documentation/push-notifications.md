@@ -1,11 +1,12 @@
 ---
 title: Push notifications for Flutter SDK
-excerpt: Enable push notifications in your app using the Flutter SDK
 slug: flutter-sdk-push-notifications
 category:
   uri: /branches/2/categories/guides/Developers
 parent:
   uri: flutter-sdk
+content:
+  excerpt: Enable push notifications in your app using the Flutter SDK
 ---
 
 Engagement enables sending push notifications to your app users using [scenarios](https://documentation.bloomreach.com/engagement/docs/scenarios-1). The mobile application handles the push message using the SDK and renders the notification on the customer's device.

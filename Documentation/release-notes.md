@@ -1,11 +1,12 @@
 ---
 title: Release notes for Flutter SDK
-excerpt: Exponea Flutter SDK release notes
 slug: flutter-sdk-release-notes
 category:
   uri: /branches/2/categories/guides/Developers
 parent:
   uri: flutter-sdk
+content:
+  excerpt: Exponea Flutter SDK release notes
 ---
 
 > 📘

@@ -1,11 +1,14 @@
 ---
 title: Data flushing for Flutter SDK
-excerpt: Learn how the Flutter SDK uploads data to the Engagement API and how to customize this behavior
 slug: flutter-sdk-data-flushing
 category:
   uri: /branches/2/categories/guides/Developers
 parent:
   uri: flutter-sdk-setup
+content:
+  excerpt: >-
+    Learn how the Flutter SDK uploads data to the Engagement API and how to
+    customize this behavior
 ---
 
 ## Data flushing
