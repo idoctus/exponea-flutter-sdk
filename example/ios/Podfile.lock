@@ -4,18 +4,18 @@ PODS:
     - Flutter
   - exponea (0.0.1):
     - AnyCodable-FlightSchool (= 0.6.3)
-    - ExponeaSDK (= 3.11.0)
+    - ExponeaSDK (= 4.1.0)
     - Flutter
-  - ExponeaSDK (3.11.0):
+  - ExponeaSDK (4.1.0):
     - SwiftSoup (< 3.0, >= 2.7.6)
-  - ExponeaSDK-Notifications (3.11.0)
+  - ExponeaSDK-Notifications (4.1.0)
   - Flutter (1.0.0)
   - Nimble (9.2.1)
   - Quick (4.0.0)
   - shared_preferences_foundation (0.0.1):
     - Flutter
     - FlutterMacOS
-  - SwiftSoup (2.7.6)
+  - SwiftSoup (2.11.3)
   - url_launcher_ios (0.0.1):
     - Flutter
   - webview_flutter_wkwebview (0.0.1):
@@ -59,14 +59,14 @@ EXTERNAL SOURCES:
 SPEC CHECKSUMS:
   AnyCodable-FlightSchool: 1c9890be5884140c60da5fde1b66380dec4c244a
   app_links: 585674be3c6661708e6cd794ab4f39fb9d8356f9
-  exponea: 147f3767a9f07d9ea11cf0b287e5780e04081633
-  ExponeaSDK: 2359dca71396a77855f809abd2d639e2f6d67ff6
-  ExponeaSDK-Notifications: 6e4abe1e40400e19f628ab54646381e6ed0b4a31
+  exponea: 146f4c944b0cb349d458498cc37271813edf52f3
+  ExponeaSDK: 5ffb702f2fe13b33758bee9666f2befc245ec949
+  ExponeaSDK-Notifications: 4131fc029c30eb2d63854b91827e7a17334c7e6d
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
   Nimble: e7e615c0335ee4bf5b0d786685451e62746117d5
   Quick: 6473349e43b9271a8d43839d9ba1c442ed1b7ac4
   shared_preferences_foundation: fcdcbc04712aee1108ac7fda236f363274528f78
-  SwiftSoup: 9ec2526c76ebc3fe5d3157c82b40b45a27eeb82d
+  SwiftSoup: 959c9ac70d7053fbf476341bfac90ab228523f2a
   url_launcher_ios: bb13df5870e8c4234ca12609d04010a21be43dfa
   webview_flutter_wkwebview: a4af96a051138e28e29f60101d094683b9f82188
 
