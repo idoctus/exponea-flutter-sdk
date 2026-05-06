@@ -53,7 +53,6 @@ class InAppContentBlockCarousel extends StatefulWidget {
 }
 
 class _InAppContentBlockCarouselState extends State<InAppContentBlockCarousel> {
-  int _id = 0;
   double _height = 1;
 
   static const String _viewType = 'InAppContentBlockCarousel';
@@ -67,7 +66,6 @@ class _InAppContentBlockCarouselState extends State<InAppContentBlockCarousel> {
   Widget? platformView;
 
   Future<void> onPlatformViewCreated(id) async {
-    _id = id;
     _channel = MethodChannel('$_channelName/$id');
     _channel!.setMethodCallHandler(handleMethodCall);
   }

@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -41,7 +40,6 @@ class InAppContentBlockPlaceholder extends StatefulWidget {
 }
 
 class _InAppContentBlockPlaceholderState extends State<InAppContentBlockPlaceholder> {
-  int _id = 0;
   double _height = 1;
 
   static const String _viewType = 'InAppContentBlockPlaceholder';
@@ -84,7 +82,6 @@ class _InAppContentBlockPlaceholderState extends State<InAppContentBlockPlacehol
   }
 
   Future<void> onPlatformViewCreated(id) async {
-    _id = id;
     _channel = MethodChannel('$_channelName/$id');
     _channel!.setMethodCallHandler(handleMethodCall);
   }

@@ -1,5 +1,3 @@
-import 'dart:ffi';
-
 import 'package:meta/meta.dart';
 
 import 'event_type.dart';

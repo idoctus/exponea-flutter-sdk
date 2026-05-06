@@ -537,11 +537,6 @@ class _HomePageState extends State<HomePage> {
         return await _plugin.flushData();
       });
 
-  Future<void> _getFlushPeriod(BuildContext context) =>
-      _runAndShowResult(context, () async {
-        return await _plugin.getFlushPeriod();
-      });
-
   Future<void> _setFlushPeriod(BuildContext context) =>
       _runAndShowResult(context, () async {
         final period = Duration(minutes: _flushPeriodController.value);
@@ -580,12 +575,6 @@ class _HomePageState extends State<HomePage> {
   Future<void> _getLogLevel(BuildContext context) =>
       _runAndShowResult(context, () async {
         return await _plugin.getLogLevel();
-      });
-
-  Future<void> _setLogLevel(BuildContext context) =>
-      _runAndShowResult(context, () async {
-        final level = _logLevelController.value!;
-        return await _plugin.setLogLevel(level);
       });
 
   Future<void> _requestPushAuthorization(BuildContext context) =>

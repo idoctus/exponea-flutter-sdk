@@ -36,7 +36,6 @@ void main() {
 
     group('decode', () {
       test('no data', () async {
-        const expected = InAppMessageButton();
         final decoded = decode(noData);
 
         expect(decoded.text, null);
