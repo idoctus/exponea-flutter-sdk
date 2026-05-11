@@ -14,6 +14,16 @@ content:
 > Refer to the [Flutter SDK version update guide](https://documentation.bloomreach.com/engagement/docs/flutter-sdk-version-update) for details on updating from version 0.x.x to 1.x.x.
 
 ## Release Notes
+## Release Notes for 2.6.0
+#### May 11, 2026
+* Added:
+  * Updates the documentation workflow configuration and fixes documentation across all pages.
+  * Updates the native Android SDK to version 5.1.0.
+  * Updates the native iOS SDK to version 4.1.0.
+* Fixed:
+  * Removes unused imports, fields, and methods flagged by the analyzer.
+  * Cleans up the publish artifact by adding `.pubignore` and removing unintended yarn files.
+
 ## Release Notes for 2.5.0
 #### March 19, 2026
 * Added:
