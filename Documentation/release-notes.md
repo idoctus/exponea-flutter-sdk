@@ -14,6 +14,11 @@ content:
 > Refer to the [Flutter SDK version update guide](https://documentation.bloomreach.com/engagement/docs/flutter-sdk-version-update) for details on updating from version 0.x.x to 1.x.x.
 
 ## Release Notes
+## Release Notes for 2.6.1
+#### May 11, 2026
+* Fixed:
+  * Fixes published package size by excluding residual build artifacts.
+
 ## Release Notes for 2.6.0
 #### May 11, 2026
 * Added:
