@@ -1226,10 +1226,31 @@ public class SwiftExponeaPlugin: NSObject, FlutterPlugin {
         }
     }
 
-    private func flush(with result: FlutterResult) {
+    private func flush(with result: @escaping FlutterResult) {
         guard requireConfigured(with: result) else { return }
-        exponeaInstance.flushData()
-        result(nil)
+        // NOTE: forwarded the native flushData(completion:) callback to the
+        // Flutter Result so the Future resolves once the events queue has
+        // been uploaded to the backend, not before. Upstream silently
+        // discards the completion (`exponeaInstance.flushData()` with no
+        // args), which makes it impossible to await `identifyCustomer`'s
+        // TRACK_CUSTOMER round-trip from Dart — the SDK only refreshes
+        // the in-app messages cache after that upload, so anything
+        // depending on the cache being populated needs this Future to
+        // actually wait.
+        exponeaInstance.flushData { flushResult in
+            DispatchQueue.main.async {
+                switch flushResult {
+                case .success, .flushAlreadyInProgress, .noInternetConnection:
+                    result(nil)
+                case .error(let error):
+                    result(FlutterError(
+                        code: "ExponeaPlugin",
+                        message: error.localizedDescription,
+                        details: nil
+                    ))
+                }
+            }
+        }
     }
 
     private func getFlushMode(with result: FlutterResult) {
