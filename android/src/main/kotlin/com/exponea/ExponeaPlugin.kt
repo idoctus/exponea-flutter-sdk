@@ -849,18 +849,38 @@ private class ExponeaMethodHandler(private val context: Context) : MethodCallHan
     }
 
     private fun configure(args: Any?, result: Result) = runWithResult<Boolean>(result) {
-        try {
-            requireNotConfigured()
-        } catch (e: Exception) {
-            return@runWithResult false
-        }
+        // NOTE: previously this method short-circuited with `return false`
+        // whenever `Exponea.isInitialized` was already true, *without*
+        // assigning `this.configuration`. That breaks add-to-app
+        // integrations: the host can recreate the FlutterEngine (and
+        // therefore this plugin instance) while the native Exponea SDK
+        // keeps its persisted state and auto-restores `isInitialized=true`
+        // on the next process start. The fresh plugin instance then has
+        // `this.configuration == null`, and any later call into a method
+        // that does `configuration!!` (most notably `anonymize`, which
+        // does `configuration!!.baseURL`) blows up with a
+        // `NullPointerException`, surfacing on the Dart side as
+        // `PlatformException(ExponeaPlugin, null, null, null)`. Because
+        // anonymize is the only path we have to clear the customer on
+        // logout, the SDK keeps the previous customer identified across
+        // sessions and serves their in-app messages on the next cold
+        // start (e.g. on the login screen of a logged-out user).
+        //
+        // The fix: always populate `this.configuration` while still
+        // honouring the SDK's single-init invariant, and rebind the
+        // notification / in-app callbacks to the current plugin instance
+        // (the previous instance's stream handlers are dead with the
+        // previous FlutterEngine).
         val data = args as Map<String, Any?>
         val configuration = ExponeaConfigurationParser().parseConfig(data)
-        Exponea.init(activity ?: context, configuration)
+        val alreadyConfigured = Exponea.isInitialized
+        if (!alreadyConfigured) {
+            Exponea.init(activity ?: context, configuration)
+        }
         this.configuration = configuration
         Exponea.notificationDataCallback = { ReceivedPushStreamHandler.handle(ReceivedPush(it)) }
         Exponea.inAppMessageActionCallback = InAppMessageActionStreamHandler.currentInstance
-        return@runWithResult true
+        return@runWithResult !alreadyConfigured
     }
 
     private fun isConfigured(result: Result) = runWithResult<Boolean>(result) {
@@ -908,12 +928,33 @@ private class ExponeaMethodHandler(private val context: Context) : MethodCallHan
         Exponea.defaultProperties = HashMap(data)
     }
 
-    private fun flush(result: Result) = runWithNoResult(result) {
+    private fun flush(result: Result) = runAsync(result) {
         requireConfigured()
-        if (Exponea.flushMode != FlushMode.MANUAL) {
-            throw ExponeaException.flushModeNotManual()
+        // NOTE: forwarded the native flushData() completion callback to the
+        // Flutter Result so the Future resolves once the events queue has
+        // been uploaded to the backend, not before. Upstream silently
+        // discards the callback (`Exponea.flushData()` with no args), which
+        // makes it impossible to await `identifyCustomer`'s TRACK_CUSTOMER
+        // round-trip from Dart — the SDK only refreshes the in-app messages
+        // cache after that upload, so anything depending on the cache being
+        // populated needs this Future to actually wait.
+        // Also removed the FlushMode.MANUAL guard: `Exponea.flushData()` is
+        // safe to invoke in any flush mode (in IMMEDIATE/PERIOD it just
+        // forces an extra flush of pending events), and forcing callers
+        // into MANUAL mode just to await one flush is overkill.
+        Exponea.flushData { flushResult ->
+            handler.post {
+                if (flushResult.isSuccess) {
+                    result.success(null)
+                } else {
+                    result.error(
+                        TAG,
+                        flushResult.exceptionOrNull()?.message ?: "Flush failed",
+                        null
+                    )
+                }
+            }
         }
-        Exponea.flushData()
     }
 
     private fun getFlushMode(result: Result) = runWithResult(result) {
