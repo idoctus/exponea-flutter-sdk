@@ -118,17 +118,20 @@ Make sure your `applicationId` value matches exactly Application ID configured i
 **Single mobile app:** If your Engagement project supports only one app, you can skip the `applicationId` configuration. The SDK will automatically use the default value "default-application".
 
 
-### Configure the SDK only once
+### Configure the SDK on every Flutter engine attach
 
-Flutter application code can be reloaded without restarting the native application itself. This speeds up the development process, but it also means that native code usually continues to run as if nothing happened. You should configure the SDK only once. When developing with hot reload enabled, you should check `ExponeaPlugin().isConfigured()` before configuring the SDK.
+Flutter application code can reload without restarting the native application. In add-to-app integrations, Flutter engines can also be stopped and recreated while the underlying native SDK keeps running.
+
+In both cases, the plugin loses its push notification and in-app message bindings and its configuration cache becomes stale. Call `configure(...)` on every Flutter engine attach to restore these bindings and refresh the cache.
+
+`configure(...)` is idempotent: only the first call initializes the underlying native SDK. Subsequent calls leave the live native configuration untouched, rebind the plugin's event listeners, refresh the plugin's configuration cache, and return `false`.
 
 ```dart
-Future<void> configureExponea(ExponeaConfiguration configuration) {
+Future<void> configureExponea(ExponeaConfiguration configuration) async {
   try {
-    if (!await _plugin.isConfigured()) {
-      _plugin.configure(configuration);
-    } else {
-      print("Exponea SDK already configured.");
+    final initialized = await _plugin.configure(configuration);
+    if (!initialized) {
+      print('Exponea SDK already configured; plugin state refreshed.');
     }
   } catch (error) {
     print('Error: $error');
@@ -136,9 +139,11 @@ Future<void> configureExponea(ExponeaConfiguration configuration) {
 }
 ```
 
+You can still query `ExponeaPlugin().isConfigured()` to distinguish the first initialization from a subsequent reattach—for example, to skip one-off setup that doesn't need to repeat. The host app must re-register any per-engine subscriptions it set up explicitly on the new engine, such as `registerSegmentationDataStream` callbacks.
+
 ### Done!
 
-At this point, the SDK is active and should now be tracking sessions in your app.
+The SDK is now active and should be tracking sessions in your app.
 
 ## Other SDK configuration
 

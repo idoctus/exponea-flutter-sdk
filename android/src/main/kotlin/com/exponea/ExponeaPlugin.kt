@@ -848,19 +848,35 @@ private class ExponeaMethodHandler(private val context: Context) : MethodCallHan
         }
     }
 
+    /**
+     * Initializes the underlying native Exponea SDK and wires plugin-side state.
+     *
+     * The native [Exponea] object rejects re-initialization, so [Exponea.init]
+     * runs only on the first call. The supplied configuration is cached on
+     * `this.configuration` on the first call and on engine reattach (when the
+     * plugin-instance cache is null). Subsequent calls while the cache is
+     * already populated do not overwrite it, keeping the cache aligned with
+     * the credentials the running native SDK was actually initialized with.
+     * The push notification and in-app message callbacks are always rebound so
+     * events dispatched by the native SDK reach the currently attached stream
+     * handlers.
+     *
+     * Returns `true` when the native SDK was initialized by this call and
+     * `false` when it was already initialized.
+     */
     private fun configure(args: Any?, result: Result) = runWithResult<Boolean>(result) {
-        try {
-            requireNotConfigured()
-        } catch (e: Exception) {
-            return@runWithResult false
-        }
         val data = args as Map<String, Any?>
         val configuration = ExponeaConfigurationParser().parseConfig(data)
-        Exponea.init(activity ?: context, configuration)
-        this.configuration = configuration
+        val alreadyConfigured = Exponea.isInitialized
+        if (!alreadyConfigured) {
+            Exponea.init(activity ?: context, configuration)
+        }
+        if (!alreadyConfigured || this.configuration == null) {
+            this.configuration = configuration
+        }
         Exponea.notificationDataCallback = { ReceivedPushStreamHandler.handle(ReceivedPush(it)) }
         Exponea.inAppMessageActionCallback = InAppMessageActionStreamHandler.currentInstance
-        return@runWithResult true
+        return@runWithResult !alreadyConfigured
     }
 
     private fun isConfigured(result: Result) = runWithResult<Boolean>(result) {
