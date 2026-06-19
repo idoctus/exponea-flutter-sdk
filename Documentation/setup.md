@@ -15,7 +15,7 @@ The Exponea Flutter SDK can be installed or updated through a dependency in your
 
 > 📘
 >
-> Refer to https://github.com/exponea/exponea-flutter-sdk/releases for the latest Exponea Android SDK release.
+> Refer to [Flutter SDK release notes](https://documentation.bloomreach.com/engagement/docs/flutter-sdk-release-notes) for the latest Exponea Flutter SDK release.
 
 ### Add dependency
 
