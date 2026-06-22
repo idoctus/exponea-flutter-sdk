@@ -96,6 +96,11 @@ The following parameters are specified in an `ExponeaConfiguration` object. Refe
   * Determines whether the SDK automatically tracks `session_end` for sessions that remain open when `ExponeaPlugin().trackSessionStart()` is called multiple times in manual session tracking mode.
   * Default value: `true`
 
+* `regenerateDeviceIdOnAnonymize`
+  * If `true`, calling `ExponeaPlugin().anonymize()` generates a new `device_id` for the new anonymous customer profile, so the device identifier no longer links the new profile to the previous customer's events.
+  * Set this to `true` when your privacy requirements include a sign-out flow that produces two unlinkable customer profiles. The default (`false`) preserves the existing behavior where `device_id` persists across `anonymize()` calls.
+  * Default value: `false`
+
 * `applicationId`
   * This `applicationId` defines a unique identifier for the mobile app within the Engagement project. Change this value only if your Engagement project contains and supports multiple mobile apps.
   * This identifier distinguishes between different apps in the same project.

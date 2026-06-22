@@ -56,6 +56,7 @@ class ConfigurationTest {
         assertEquals(config.appInboxDetailImageInset, defaultConfig.appInboxDetailImageInset)
         assertEquals(config.allowWebViewCookies, defaultConfig.allowWebViewCookies)
         assertEquals(config.manualSessionAutoClose, defaultConfig.manualSessionAutoClose)
+        assertEquals(config.regenerateDeviceIdOnAnonymize, defaultConfig.regenerateDeviceIdOnAnonymize)
     }
 
     @Test
@@ -90,6 +91,7 @@ class ConfigurationTest {
         assertEquals(config.appInboxDetailImageInset, 16)
         assertEquals(config.allowWebViewCookies, true)
         assertEquals(config.manualSessionAutoClose, true)
+        assertEquals(config.regenerateDeviceIdOnAnonymize, true)
         assertEquals(config.applicationId, "default-application")
     }
 
@@ -125,6 +127,7 @@ class ConfigurationTest {
         assertEquals(config.appInboxDetailImageInset, 16)
         assertEquals(config.allowWebViewCookies, true)
         assertEquals(config.manualSessionAutoClose, true)
+        assertEquals(config.regenerateDeviceIdOnAnonymize, true)
         assertEquals(config.applicationId, "default-application")
     }
 }

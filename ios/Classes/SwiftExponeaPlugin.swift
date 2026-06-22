@@ -1149,19 +1149,24 @@ public class SwiftExponeaPlugin: NSObject, FlutterPlugin {
             let parser = ConfigurationParser()
             let config = try parser.parseConfig(data)
 
-            // exponeaInstance.checkPushSetup = true
-            exponeaInstance.configure(
-                config.projectSettings,
-                pushNotificationTracking: config.pushNotificationTracking,
-                automaticSessionTracking: config.automaticSessionTracking,
-                defaultProperties: config.defaultProperties,
-                inAppContentBlocksPlaceholders: config.inAppContentBlockPlaceholdersAutoLoad,
-                flushingSetup: config.flushingSetup,
-                allowDefaultCustomerProperties: config.allowDefaultCustomerProperties,
-                advancedAuthEnabled: config.advancedAuthEnabled, 
-                manualSessionAutoClose: config.manualSessionAutoClose,
-                applicationID: config.applicationId
-            )
+            if config.regenerateDeviceIdOnAnonymize == true {
+                let sdkConfiguration = try parser.buildSdkConfiguration(config, data: data)
+                exponeaInstance.configure(with: sdkConfiguration, authContext: nil)
+                exponeaInstance.flushingMode = .immediate
+            } else {
+                exponeaInstance.configure(
+                    config.projectSettings,
+                    pushNotificationTracking: config.pushNotificationTracking,
+                    automaticSessionTracking: config.automaticSessionTracking,
+                    defaultProperties: config.defaultProperties,
+                    inAppContentBlocksPlaceholders: config.inAppContentBlockPlaceholdersAutoLoad,
+                    flushingSetup: config.flushingSetup,
+                    allowDefaultCustomerProperties: config.allowDefaultCustomerProperties,
+                    advancedAuthEnabled: config.advancedAuthEnabled,
+                    manualSessionAutoClose: config.manualSessionAutoClose,
+                    applicationID: config.applicationId
+                )
+            }
             if (!exponeaInstance.isConfigured) {
                 result(FlutterError(code: errorCode, message: ExponeaError.configurationError.errorDescription, details: nil))
             } else {

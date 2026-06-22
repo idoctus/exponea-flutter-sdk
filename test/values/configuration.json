@@ -37,6 +37,7 @@
     "advancedAuthEnabled": true,
     "inAppContentBlockPlaceholdersAutoLoad": ["mock-placeholder-1", "mock-placeholder-2"],
     "manualSessionAutoClose": true,
+    "regenerateDeviceIdOnAnonymize": true,
     "android": {
       "automaticPushNotifications": true,
       "pushIcon": 12345,
@@ -88,6 +89,7 @@
     "advancedAuthEnabled": true,
     "inAppContentBlockPlaceholdersAutoLoad": ["mock-placeholder-1", "mock-placeholder-2"],
     "manualSessionAutoClose": true,
+    "regenerateDeviceIdOnAnonymize": true,
     "android": {
       "automaticPushNotifications": true,
       "pushIcon": 12345,

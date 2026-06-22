@@ -66,8 +66,8 @@ class ConfigurationParser {
     func parsePushNotificationTracking(_ data: [String:Any?]) throws -> ExponeaSDK.Exponea.PushNotificationTracking {
         let iosData: [String:Any?] = try data.getOptional("ios") ?? [:]
         let appGroup: String = try iosData.getOptional("appGroup") ?? ""
-        let requirePushAuthorization: Bool = try data.getOptional("requirePushAuthorization") ??
-            iosData.getOptional("requirePushAuthorization") ?? true
+        let requirePushAuthorization: Bool = try iosData.getOptional("requirePushAuthorization") ??
+            data.getOptional("requirePushAuthorization") ?? true
         var frequency: TokenTrackFrequency?
         if let frequencyString: String = try data.getOptional("pushTokenTrackingFrequency") {
             switch frequencyString {
@@ -110,4 +110,40 @@ class ConfigurationParser {
         return ExponeaSDK.Exponea.FlushingSetup(mode: .immediate, maxRetries: maxRetries)
     }
 
+    func buildSdkConfiguration(_ config: ExponeaConfiguration, data: [String: Any?]) throws -> Configuration {
+        let iosData: [String: Any?] = try data.getOptional("ios") ?? [:]
+        let appGroup: String = try iosData.getOptional("appGroup") ?? ""
+        let requirePushAuthorization: Bool = try iosData.getOptional("requirePushAuthorization") ??
+            data.getOptional("requirePushAuthorization") ?? true
+        var tokenTrackFrequency: TokenTrackFrequency = .onTokenChange
+        if let frequencyString: String = try data.getOptional("pushTokenTrackingFrequency") {
+            switch frequencyString {
+            case "ON_TOKEN_CHANGE": tokenTrackFrequency = .onTokenChange
+            case "EVERY_LAUNCH": tokenTrackFrequency = .everyLaunch
+            case "DAILY": tokenTrackFrequency = .daily
+            default: throw ExponeaDataError.invalidValue(for: "pushTokenTrackingFrequency")
+            }
+        }
+        let automaticSessionTracking: Bool = try data.getOptional("automaticSessionTracking") ?? true
+        let sessionTimeout: Double = try data.getOptional("sessionTimeout") ?? ExponeaSDK.Constants.Session.defaultTimeout
+        let flushMaxRetries: Int = try data.getOptional("flushMaxRetries") ?? ExponeaSDK.Constants.Session.maxRetries
+
+        return try Configuration(
+            integrationConfig: config.projectSettings,
+            appGroup: appGroup,
+            defaultProperties: config.defaultProperties,
+            inAppContentBlocksPlaceholders: config.inAppContentBlockPlaceholdersAutoLoad,
+            sessionTimeout: sessionTimeout,
+            automaticSessionTracking: automaticSessionTracking,
+            automaticPushNotificationTracking: false,
+            requirePushAuthorization: requirePushAuthorization,
+            tokenTrackFrequency: tokenTrackFrequency,
+            flushEventMaxRetries: flushMaxRetries,
+            allowDefaultCustomerProperties: config.allowDefaultCustomerProperties ?? true,
+            advancedAuthEnabled: config.advancedAuthEnabled,
+            manualSessionAutoClose: config.manualSessionAutoClose,
+            applicationID: config.applicationId,
+            regenerateDeviceIdOnAnonymize: config.regenerateDeviceIdOnAnonymize ?? false
+        )
+    }
 }

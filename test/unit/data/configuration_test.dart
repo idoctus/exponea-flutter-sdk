@@ -59,6 +59,7 @@ void main() {
           pushTokenTrackingFrequency: TokenFrequency.daily,
           requirePushAuthorization: true,
           manualSessionAutoClose: true,
+          regenerateDeviceIdOnAnonymize: true,
           android: AndroidExponeaConfiguration(
             automaticPushNotifications: true,
             pushIcon: 12345,
@@ -113,6 +114,7 @@ void main() {
           pushTokenTrackingFrequency: TokenFrequency.daily,
           requirePushAuthorization: true,
           manualSessionAutoClose: true,
+          regenerateDeviceIdOnAnonymize: true,
           android: AndroidExponeaConfiguration(
             automaticPushNotifications: true,
             pushIcon: 12345,
@@ -164,6 +166,7 @@ void main() {
         expect(decoded.advancedAuthEnabled, null);
         expect(decoded.inAppContentBlockPlaceholdersAutoLoad, null);
         expect(decoded.manualSessionAutoClose, null);
+        expect(decoded.regenerateDeviceIdOnAnonymize, null);
         expect(decoded.baseUrl, null);
         expect(decoded.android, null);
         expect(decoded.ios, null);
@@ -194,6 +197,7 @@ void main() {
         expect(decoded.automaticSessionTracking, true);
         expect(decoded.allowDefaultCustomerProperties, true);
         expect(decoded.advancedAuthEnabled, true);
+        expect(decoded.regenerateDeviceIdOnAnonymize, true);
         expect(decoded.inAppContentBlockPlaceholdersAutoLoad, ["mock-placeholder-1", "mock-placeholder-2"]);
         expect(decoded.pushTokenTrackingFrequency, TokenFrequency.daily);
         expect(decoded.requirePushAuthorization, true);
@@ -241,6 +245,7 @@ void main() {
         expect(decoded.automaticSessionTracking, true);
         expect(decoded.allowDefaultCustomerProperties, true);
         expect(decoded.advancedAuthEnabled, true);
+        expect(decoded.regenerateDeviceIdOnAnonymize, true);
         expect(decoded.inAppContentBlockPlaceholdersAutoLoad, ["mock-placeholder-1", "mock-placeholder-2"]);
         expect(decoded.pushTokenTrackingFrequency, TokenFrequency.daily);
         expect(decoded.requirePushAuthorization, true);

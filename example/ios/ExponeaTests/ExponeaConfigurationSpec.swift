@@ -100,6 +100,7 @@ class ExponeaConfigurationParserSpec: QuickSpec {
                 expect(notifTracking.delegate).to(beNil())
 
                 expect(config.allowDefaultCustomerProperties).to(equal(true))
+                expect(config.regenerateDeviceIdOnAnonymize).to(equal(true))
             }
 
             it("full") {
@@ -144,6 +145,7 @@ class ExponeaConfigurationParserSpec: QuickSpec {
                 expect(notifTracking.delegate).to(beNil())
                 
                 expect(config.allowDefaultCustomerProperties).to(equal(true))
+                expect(config.regenerateDeviceIdOnAnonymize).to(equal(true))
             }
         }
     }

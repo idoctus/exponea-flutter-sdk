@@ -56,6 +56,9 @@ class ExponeaConfiguration {
   /// If true, `session_end` is automatically tracked for current open session when next `trackSessionStart()` is called
   final bool? manualSessionAutoClose;
 
+  /// If true, `anonymize()` generates a new device_id so the new anonymous customer gets a fresh device_id.
+  final bool? regenerateDeviceIdOnAnonymize;
+
   /// If null, 'applicationId' with default value 'default-application' will be used. Otherwise 'applicationId' must be in specific format see Documentation/configuration.md for more details.
   final String? applicationId;
 
@@ -76,6 +79,7 @@ class ExponeaConfiguration {
     this.ios,
     this.inAppContentBlockPlaceholdersAutoLoad,
     this.manualSessionAutoClose,
+    this.regenerateDeviceIdOnAnonymize,
     this.applicationId
   });
 }
