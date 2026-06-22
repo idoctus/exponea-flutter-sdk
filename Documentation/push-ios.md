@@ -165,9 +165,9 @@ The system calls the following method if the app is in the foreground while a pu
     override func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
         // show notification even if the app is in the foreground
         if #available(iOS 14, *) {
-            completionHandler([.banner])
+            completionHandler([.banner, .list, .sound])
         } else {
-            completionHandler([.alert])
+            completionHandler([.alert, .sound])
         }
     }
 ```
