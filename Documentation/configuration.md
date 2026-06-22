@@ -69,16 +69,14 @@ The following parameters are specified in an `ExponeaConfiguration` object. Refe
   * Indicates the frequency with which the SDK should track the push notification token to Engagement.
   * Default value: `TokenFrequency.onTokenChange`
   * Possible values:
-    * `.onTokenChange` - tracks push token if it differs from a previously tracked one
-    * `.everyLaunch` - always tracks push token
+    * `.onTokenChange` - tracks the push token if it differs from a previously tracked one. The SDK also automatically refreshes the `notification_state` event every 30 days, even when the token hasn't changed.
+    * `.everyLaunch` - tracks the push token once per app launch (process start). Some operations always trigger tracking regardless of this setting: calling `trackPushToken()` manually, receiving a new token from FCM, HMS, or APNs, and calling `anonymize()` or `stopIntegration()`.
     * `.daily` - tracks push token once per day
 
-* `requirePushAuthorization`
-  * Flag indicating whether the SDK should check [push notification permission status](https://developer.android.com/develop/ui/views/notifications/notification-permission) and [Apple documentation](https://developer.apple.com/documentation/usernotifications/unnotificationsettings/1648391-authorizationstatus) and only track the push token if the user granted permission to receive push notifications.
-  * Possible values:
-    * `true` - tracks the push token only if the user granted permission to receive push notifications. An empty token value is tracked if the user denied permission. This is useful to send normal push notifications to a target audience that allows receiving notifications.
-    * `false` - tracks the push token regardless of notification permission status. This is useful to send silent push notifications that do not require permission from the user.
-  * Default value: `false` (Android) / `true` (iOS)
+* `requirePushAuthorization` **(deprecated — use iOS-specific `ios.requirePushAuthorization` instead)**
+  * **Android:** This property has no effect. The SDK always tracks the push token regardless of this flag.
+  * **iOS:** Kept for backward compatibility. When you set both the top-level and `ios.requirePushAuthorization` values, the iOS-specific value takes precedence.
+  * For more details, see [iOS-specific configuration parameters](#ios-specific-configuration-parameters).
 
 * `flushMaxRetries`
   * Controls how many times the SDK should attempt to flush an event before aborting. Useful for example in case the API is down or some other temporary error happens.
@@ -173,11 +171,14 @@ The following parameters are specified in an `AndroidExponeaConfiguration` objec
 
 The following parameters are specified in an `IOSExponeaConfiguration` object. Refer to [lib/src/data/model/configuration.dart](https://github.com/exponea/exponea-flutter-sdk/blob/main/lib/src/data/model/configuration.dart) for the complete Dart definition
 
-* `requirePushAuthorization` - DEPRECATED
-  * The SDK can check push notification authorization status ([Apple documentation](https://developer.apple.com/documentation/usernotifications/unnotificationsettings/1648391-authorizationstatus)) and only track the push token if the user is authorized to receive push notifications.
-  * When disabled, the SDK will automatically register for push notifications on app start and track the token to Engagement so your app can receive silent push notifications.
-  * When enabled, the SDK will automatically register for push notifications if the app is authorized to show push notifications to the user.
-  * Unless you're only using silent notifications, keep the default value `true`.
+* `requirePushAuthorization`
+  * Controls whether the SDK calls `registerForRemoteNotifications()` automatically based on the OS-reported notification authorization status.
+  * When `true` (default), the SDK only calls `registerForRemoteNotifications()` once the OS reports `authorized` or `provisional` status ([Apple documentation](https://developer.apple.com/documentation/usernotifications/unnotificationsettings/1648391-authorizationstatus)). Use this when your app should receive an APNs token only after the user grants notification permission.
+  * When `false`, the SDK calls `registerForRemoteNotifications()` unconditionally on every launch, allowing the app to receive silent pushes regardless of the user's visible notification permission state.
+  * `valid` in `notification_state` events always reflects the actual OS authorization status, regardless of your `requirePushAuthorization` setting. For more details, see [Token tracking via notification_state event](https://documentation.bloomreach.com/engagement/docs/flutter-sdk-push-notifications#token-tracking-via-notification_state-event).
+  * Your app is responsible for requesting notification permission from the user — the SDK never triggers the permission prompt itself.
+  * Default value: `true`
+  * If you also set the deprecated top-level `requirePushAuthorization`, this iOS-specific value takes precedence.
 
 * `appGroup`
   * App group used for communication between the main app and notification extensions. This is a required field for rich push notification setup.

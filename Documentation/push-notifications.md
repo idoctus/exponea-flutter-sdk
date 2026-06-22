@@ -283,12 +283,14 @@ allowing you to track multiple push tokens for the same customer across differen
 The SDK automatically tracks `notification_state` events in the following scenarios:
 
 * SDK initialization
-* App transitions from background to foreground
+* App transitions from background to foreground (only if notification permission status has changed since last tracking)
 * SDK version changes (app update)
-* `application_id` changes in the SDK configuration
+* `applicationId` changes in the SDK configuration
 * New token received from Firebase, Huawei, or APNs
-* Manual token tracking using `ExponeaPlugin().trackPushToken(...)` (Android, iOS) or `ExponeaPlugin().trackHmsPushToken(...)` (Huawei) (this method allows you to force tracking/sending the current push token via notification_state event)
-* User anonymization via `ExponeaPlugin().anonymize()`
+* Manual token tracking using `ExponeaPlugin().trackPushToken(...)` (Android, iOS) or `ExponeaPlugin().trackHmsPushToken(...)` (Huawei) — lets you force tracking/sending the current push token via `notification_state` event
+* User anonymization via `ExponeaPlugin().anonymize()` or `ExponeaPlugin().stopIntegration()`
+* OS push authorization status flips (granted ↔ denied) since the last `notification_state` event, so the `valid` flag always stays in sync with the user's actual permission state
+* 30 days have passed since the last successful `notification_state` track (applies to `ON_TOKEN_CHANGE` frequency, ensuring the token stays within the validity window even when it hasn't changed)
 * Notification permission requested via `ExponeaPlugin().requestPushAuthorization()`
 
 ```dart
@@ -299,36 +301,57 @@ _plugin.requestPushAuthorization()
 
 The frequency of `notification_state` event tracking depends on the `pushTokenTrackingFrequency` configuration property. See [Configuration for Flutter SDK](https://documentation.bloomreach.com/engagement/docs/flutter-sdk-configuration).
 
+> 📘 Note
+>
+> When `pushTokenTrackingFrequency` is `TokenFrequency.onTokenChange` (the default), the SDK also refreshes the `notification_state` event every 30 days, even when the token hasn't changed.
+
+> 📘 Note
+>
+> When `pushTokenTrackingFrequency` is `TokenFrequency.everyLaunch`, the SDK tracks the push token once per app launch (process start). All other SDK operations during that launch reuse this tracking, so each launch produces a single `notification_state` event.
+>
+> Some operations bypass this limit and always trigger tracking:
+>
+> * Calling `ExponeaPlugin().trackPushToken(...)` or `ExponeaPlugin().trackHmsPushToken(...)` manually.
+> * Receiving a new token from FCM, HMS, or APNs.
+> * Calling `ExponeaPlugin().anonymize()` or `ExponeaPlugin().stopIntegration()`.
+
 ### notification_state event properties
 
 | Property                | Description                              | Example values                                              |
 |-------------------------|------------------------------------------|-------------------------------------------------------------|
 | `push_notification_token` | Current push notification token          | Token string                                                |
-| `platform`                | Mobile platform                          | `android`, `huawei`, or `iOS`                               |
+| `platform`                | Mobile platform                          | `android`, `huawei`, or `ios`                               |
 | `valid`                   | Token validity status                    | `true` or `false`                                           |
 | `description`             | Token state description                  | `Permission granted`, `Permission denied`, or `Invalidated` |
 | `application_id`          | Application identifier from SDK configuration | Custom ID or `default-application` (default)                |
 | `device_id`               | Unique device identifier                 | UUID string                                                 |
+| `os_name`                 | Operating-system name                    | `Android`, `iOS`                                            |
+| `os_version`              | Operating-system version                 | `14`, `17.4`                                                |
+| `sdk`                     | SDK identifier                           | `Exponea Android SDK`, `Exponea iOS SDK`                    |
+| `sdk_version`             | Version of the native Bloomreach SDK     | `5.2.1`, `4.2.0`                                            |
+| `device_model`            | Device model name                        | `Pixel 8`, `iPhone 15 Pro`                                  |
+| `device_type`             | Device form factor                       | `mobile`, `tablet`                                          |
+| `app_version`             | Host app version                         | `1.0`, `2.3.1`                                              |
 
 > 📘 Note
 >
-> If you don't specify an `application_id` in your SDK configuration, the default value `default-application` is used. See [Configuration for Flutter SDK](https://documentation.bloomreach.com/engagement/docs/flutter-sdk-configuration).
+> If you don't specify an `applicationId` in your SDK configuration, the SDK uses the default value `default-application`. For more details, see [Configuration for Flutter SDK](https://documentation.bloomreach.com/engagement/docs/flutter-sdk-configuration).
 
 ### Understanding token states
 
 The combination of `valid` and `description` properties indicates the token's current state:
 
-| Valid | Description         | When this occurs                                                                                                                                             |
-|-------|---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `false` | `Invalidated`         | New token received \(old token becomes invalid\) or `ExponeaPlugin().anonymize()` called                                                                     |
-| `false` | `Permission denied`   | [Configuration for Flutter SDK](https://documentation.bloomreach.com/engagement/docs/flutter-sdk-configuration) (`requirePushAuthorization`) is `true` and user denied notification permission |
-| `true`  | `Permission granted`  | Valid token tracked successfully \(all other cases\)                                                                                                         |
+| Valid | Description         | When this occurs                                                                                                                                                                                                                                                                      |
+|-------|---------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `false` | `Invalidated`         | New token received (old token becomes invalid) or `ExponeaPlugin().anonymize()` / `ExponeaPlugin().stopIntegration()` called                                                                                                                                                          |
+| `false` | `Permission denied`   | User denied notification permission or the user disabled notifications in system settings. The `valid` flag reflects the actual OS permission state directly, regardless of `requirePushAuthorization`. |
+| `true`  | `Permission granted`  | User has granted notification permission and notifications are enabled                                                                                      |
 
 ### Configuring Application ID
 
 > 📘 Note
 >
-> See this section to configure `application_id`. [Initial setup for Flutter SDK](https://documentation.bloomreach.com/engagement/docs/flutter-sdk-setup#configure-application-id) (Configure Application ID).
+> To configure `applicationId`, see [Configure application ID](https://documentation.bloomreach.com/engagement/docs/flutter-sdk-setup#configure-application-id).
 
 > ❗️Important
 >

@@ -35,7 +35,11 @@ class ExponeaConfiguration {
   /// Defines how often should the SDK track push notification token to Exponea
   final TokenFrequency? pushTokenTrackingFrequency;
 
-  /// If true, push notification registration and push token tracking is only done if the device is authorized to display push notifications
+  /// If true, push notification registration and push token tracking is only done if the device is authorized to display push notifications.
+  ///
+  /// Deprecated — use [IOSExponeaConfiguration.requirePushAuthorization] instead.
+  /// This top-level parameter has no effect on Android and is kept for backward compatibility
+  /// as a fallback on iOS when the iOS-specific value is not set.
   final bool? requirePushAuthorization;
 
   /// If true, default properties are applied also for 'identifyCustomer' event.
@@ -72,6 +76,9 @@ class ExponeaConfiguration {
     this.sessionTimeout,
     this.automaticSessionTracking,
     this.pushTokenTrackingFrequency,
+    @Deprecated(
+      "Use 'ios.requirePushAuthorization' instead. This top-level parameter has no effect on Android and is kept for backward compatibility as a fallback on iOS when the iOS-specific value is not set.",
+    )
     this.requirePushAuthorization,
     this.allowDefaultCustomerProperties,
     this.advancedAuthEnabled,
@@ -141,14 +148,31 @@ class AndroidExponeaConfiguration {
 
 @immutable
 class IOSExponeaConfiguration {
-  /// If true, push notification registration and push token tracking is only done if the device is authorized to display push notifications
+  /// Controls whether the SDK calls `registerForRemoteNotifications()` automatically based on the
+  /// OS-reported notification authorization status.
+  ///
+  /// When `true` (default), the SDK only calls `registerForRemoteNotifications()` once the OS
+  /// reports `authorized` or `provisional` status. Use this when your app should not receive an
+  /// APNs token until the user has explicitly granted notification permission.
+  ///
+  /// When `false`, the SDK calls `registerForRemoteNotifications()` unconditionally on every
+  /// launch, allowing the app to receive silent pushes regardless of the user's visible
+  /// notification permission state.
+  ///
+  /// This flag does not affect the `valid` field in `notification_state` events — `valid` always
+  /// reflects the actual OS authorization status, regardless of how this flag is set.
+  ///
+  /// Your app is responsible for requesting notification permission from the user — the SDK never
+  /// triggers the permission prompt itself.
+  ///
+  /// If the deprecated top-level [ExponeaConfiguration.requirePushAuthorization] is also set,
+  /// this iOS-specific value takes precedence.
   final bool? requirePushAuthorization;
 
   /// App group used for communication between main app and notification extensions
   final String? appGroup;
 
   const IOSExponeaConfiguration({
-    @Deprecated("Will be removed in a later version of the SDK, use common 'requirePushAuthorization' instead. When both are set, the common one will be used.")
     this.requirePushAuthorization,
     this.appGroup,
   });

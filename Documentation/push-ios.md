@@ -115,9 +115,9 @@ _plugin.requestPushAuthorization()
 .catchError((error) => print('Error: $error'));
 ```
 
-> 👍
+> 📘 Note
 >
-> Push notification authorization status is tracked as customer property `apple_push_notification_authorized`.
+> `notification_state` events reflect push notification permission status in the `valid` and `description` properties. For more details, see [Token tracking via notification_state event](https://documentation.bloomreach.com/engagement/docs/flutter-sdk-push-notifications#token-tracking-via-notification_state-event).
 
 ### Checklist:
 
@@ -142,7 +142,7 @@ Calling the `ExponeaNotificationContentService.didReceive()` method will enhance
 
 ### Retrieve push notification token manually
 
-Sometimes, your application may need to retrieve the current push token while running. You can do this using the `Exponea.shared.trackPushToken` method.
+If your running app needs to retrieve the current push token, use `ExponeaPlugin().trackPushToken(...)`.
 
 A common use case is when the `ExponeaPlugin().anonymize()` method is called. Invoking `anonymize` removes the push notification token from local storage. Hence, it needs to be updated right after `anonymize`, or before or after `identifyCustomer`, depending on your push notifications usage.
 
