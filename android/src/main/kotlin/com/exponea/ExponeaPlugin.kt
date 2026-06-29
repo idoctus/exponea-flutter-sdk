@@ -848,36 +848,47 @@ private class ExponeaMethodHandler(private val context: Context) : MethodCallHan
         }
     }
 
+    /**
+     * Initializes the underlying native Exponea SDK and wires plugin-side state.
+     *
+     * The native [Exponea] object rejects re-initialization, so [Exponea.init]
+     * runs only on the first call. The supplied configuration is cached on
+     * `this.configuration` on the first call and on engine reattach (when the
+     * plugin-instance cache is null). Subsequent calls while the cache is
+     * already populated do not overwrite it, keeping the cache aligned with
+     * the credentials the running native SDK was actually initialized with.
+     * The push notification and in-app message callbacks are always rebound so
+     * events dispatched by the native SDK reach the currently attached stream
+     * handlers.
+     *
+     * Returns `true` when the native SDK was initialized by this call and
+     * `false` when it was already initialized.
+     */
     private fun configure(args: Any?, result: Result) = runWithResult<Boolean>(result) {
-        // NOTE: previously this method short-circuited with `return false`
-        // whenever `Exponea.isInitialized` was already true, *without*
-        // assigning `this.configuration`. That breaks add-to-app
-        // integrations: the host can recreate the FlutterEngine (and
-        // therefore this plugin instance) while the native Exponea SDK
-        // keeps its persisted state and auto-restores `isInitialized=true`
-        // on the next process start. The fresh plugin instance then has
-        // `this.configuration == null`, and any later call into a method
-        // that does `configuration!!` (most notably `anonymize`, which
-        // does `configuration!!.baseURL`) blows up with a
-        // `NullPointerException`, surfacing on the Dart side as
-        // `PlatformException(ExponeaPlugin, null, null, null)`. Because
-        // anonymize is the only path we have to clear the customer on
-        // logout, the SDK keeps the previous customer identified across
-        // sessions and serves their in-app messages on the next cold
-        // start (e.g. on the login screen of a logged-out user).
-        //
-        // The fix: always populate `this.configuration` while still
-        // honouring the SDK's single-init invariant, and rebind the
-        // notification / in-app callbacks to the current plugin instance
-        // (the previous instance's stream handlers are dead with the
-        // previous FlutterEngine).
         val data = args as Map<String, Any?>
         val configuration = ExponeaConfigurationParser().parseConfig(data)
         val alreadyConfigured = Exponea.isInitialized
+
+        // Apply an initial flush mode atomically around init() so the SDK's
+        // first auto-tracked events (installation/session_start) are buffered
+        // instead of flushed. Set before init (best effort; the setter no-ops
+        // if not yet initialized on some SDK versions) and again right after,
+        // synchronously, before the async flush coroutine can run.
+        val initialFlushMode = (data["flushMode"] as? String)?.let {
+            runCatching { FlushMode.valueOf(it) }.getOrNull()
+        }
+        if (initialFlushMode != null) {
+            runCatching { Exponea.flushMode = initialFlushMode }
+        }
         if (!alreadyConfigured) {
             Exponea.init(activity ?: context, configuration)
         }
-        this.configuration = configuration
+        if (initialFlushMode != null) {
+            Exponea.flushMode = initialFlushMode
+        }
+        if (!alreadyConfigured || this.configuration == null) {
+            this.configuration = configuration
+        }
         Exponea.notificationDataCallback = { ReceivedPushStreamHandler.handle(ReceivedPush(it)) }
         Exponea.inAppMessageActionCallback = InAppMessageActionStreamHandler.currentInstance
         return@runWithResult !alreadyConfigured

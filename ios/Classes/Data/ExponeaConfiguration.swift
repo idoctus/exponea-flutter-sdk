@@ -18,6 +18,7 @@ class ExponeaConfiguration {
     var advancedAuthEnabled: Bool? = nil
     var inAppContentBlockPlaceholdersAutoLoad: [String]? = nil
     var manualSessionAutoClose: Bool = true
+    var regenerateDeviceIdOnAnonymize: Bool? = nil
     var applicationId: String? = nil
     
     init(_ data: [String: Any?], parser: ConfigurationParser) throws {
@@ -37,6 +38,9 @@ class ExponeaConfiguration {
         }
         if let manualSessionAutoClose = data["manualSessionAutoClose"] as? Bool {
             self.manualSessionAutoClose = manualSessionAutoClose
+        }
+        if let regenerateDeviceIdOnAnonymize = data["regenerateDeviceIdOnAnonymize"] as? Bool {
+            self.regenerateDeviceIdOnAnonymize = regenerateDeviceIdOnAnonymize
         }
         if let applicationId = data["applicationId"] as? String {
             self.applicationId = applicationId

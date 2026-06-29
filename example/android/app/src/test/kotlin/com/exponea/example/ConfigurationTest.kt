@@ -56,6 +56,7 @@ class ConfigurationTest {
         assertEquals(config.appInboxDetailImageInset, defaultConfig.appInboxDetailImageInset)
         assertEquals(config.allowWebViewCookies, defaultConfig.allowWebViewCookies)
         assertEquals(config.manualSessionAutoClose, defaultConfig.manualSessionAutoClose)
+        assertEquals(config.regenerateDeviceIdOnAnonymize, defaultConfig.regenerateDeviceIdOnAnonymize)
     }
 
     @Test
@@ -83,13 +84,14 @@ class ConfigurationTest {
         assertEquals(config.sessionTimeout.toInt(), 60)
         assertEquals(config.automaticSessionTracking, true)
         assertEquals(config.tokenTrackFrequency, TokenFrequency.DAILY)
-        assertEquals(config.requirePushAuthorization, true)
+        assertEquals(config.requirePushAuthorization, ExponeaConfiguration().requirePushAuthorization)
         assertEquals(config.allowDefaultCustomerProperties, true)
         assertEquals(config.advancedAuthEnabled, true)
         assertEquals(config.inAppContentBlockPlaceholdersAutoLoad, listOf("mock-placeholder-1", "mock-placeholder-2"))
         assertEquals(config.appInboxDetailImageInset, 16)
         assertEquals(config.allowWebViewCookies, true)
         assertEquals(config.manualSessionAutoClose, true)
+        assertEquals(config.regenerateDeviceIdOnAnonymize, true)
         assertEquals(config.applicationId, "default-application")
     }
 
@@ -118,13 +120,14 @@ class ConfigurationTest {
         assertEquals(config.sessionTimeout.toInt(), 45)
         assertEquals(config.automaticSessionTracking, true)
         assertEquals(config.tokenTrackFrequency, TokenFrequency.DAILY)
-        assertEquals(config.requirePushAuthorization, true)
+        assertEquals(config.requirePushAuthorization, ExponeaConfiguration().requirePushAuthorization)
         assertEquals(config.allowDefaultCustomerProperties, true)
         assertEquals(config.advancedAuthEnabled, true)
         assertEquals(config.inAppContentBlockPlaceholdersAutoLoad, listOf("mock-placeholder-1", "mock-placeholder-2"))
         assertEquals(config.appInboxDetailImageInset, 16)
         assertEquals(config.allowWebViewCookies, true)
         assertEquals(config.manualSessionAutoClose, true)
+        assertEquals(config.regenerateDeviceIdOnAnonymize, true)
         assertEquals(config.applicationId, "default-application")
     }
 }

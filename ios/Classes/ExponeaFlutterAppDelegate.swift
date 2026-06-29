@@ -64,9 +64,9 @@ open class ExponeaFlutterAppDelegate: FlutterAppDelegate {
     ) {
         // show notification even if the app is in the foreground
         if #available(iOS 14, *) {
-            completionHandler([.banner])
+            completionHandler([.banner, .list, .sound])
         } else {
-            completionHandler([.alert])
+            completionHandler([.alert, .sound])
         }
     }
 

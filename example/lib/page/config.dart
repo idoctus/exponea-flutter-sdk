@@ -169,7 +169,6 @@ class _ConfigPageState extends State<ConfigPage> {
       authorizationToken: authToken,
       baseUrl: baseUrl,
       pushTokenTrackingFrequency: TokenFrequency.everyLaunch,
-      requirePushAuthorization: true,
       flushMaxRetries: 11,
       automaticSessionTracking: sessionTracking,
       sessionTimeout: 22.5,
@@ -201,6 +200,7 @@ class _ConfigPageState extends State<ConfigPage> {
         pushIcon: pushIcon,
       ),
       ios: const IOSExponeaConfiguration(
+        requirePushAuthorization: true,
         // Must match Runner + ExampleNotificationService entitlements and
         // ExampleNotificationService/NotificationService.swift (push delivery tracking).
         appGroup: 'group.com.exponea.sdk.example',
