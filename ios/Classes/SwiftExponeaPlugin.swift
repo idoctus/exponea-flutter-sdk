@@ -87,7 +87,7 @@ protocol IsExponeaFlutterSDK {
 public class ExponeaFlutterVersion: NSObject, ExponeaVersionProvider {
     required public override init() { }
     public func getVersion() -> String {
-        "2.6.1"
+        "2.7.0"
     }
 }
 
@@ -1134,6 +1134,13 @@ public class SwiftExponeaPlugin: NSObject, FlutterPlugin {
 
     private func configure(_ args: Any?, with result: FlutterResult) {
         guard !exponeaInstance.isConfigured else {
+            // SDK is already running (engine reattach). Rebind the push-notification delegate
+            // to this new plugin instance so that push-opened callbacks reach the current
+            // engine's stream handlers. pushNotificationsDelegate is a weak reference inside
+            // ExponeaSDK, so the previous plugin instance has been deallocated and the property
+            // is nil at this point. inAppMessagesDelegate uses a process-level singleton
+            // (InAppMessageActionStreamHandler.currentInstance) and does not need rebinding.
+            exponeaInstance.pushNotificationsDelegate = self
             result(false)
             return
         }
@@ -1142,19 +1149,30 @@ public class SwiftExponeaPlugin: NSObject, FlutterPlugin {
             let parser = ConfigurationParser()
             let config = try parser.parseConfig(data)
 
-            // exponeaInstance.checkPushSetup = true
-            exponeaInstance.configure(
-                config.projectSettings,
-                pushNotificationTracking: config.pushNotificationTracking,
-                automaticSessionTracking: config.automaticSessionTracking,
-                defaultProperties: config.defaultProperties,
-                inAppContentBlocksPlaceholders: config.inAppContentBlockPlaceholdersAutoLoad,
-                flushingSetup: config.flushingSetup,
-                allowDefaultCustomerProperties: config.allowDefaultCustomerProperties,
-                advancedAuthEnabled: config.advancedAuthEnabled, 
-                manualSessionAutoClose: config.manualSessionAutoClose,
-                applicationID: config.applicationId
-            )
+            if config.regenerateDeviceIdOnAnonymize == true {
+                let sdkConfiguration = try parser.buildSdkConfiguration(config, data: data)
+                exponeaInstance.configure(with: sdkConfiguration, authContext: nil)
+                exponeaInstance.flushingMode = .immediate
+            } else {
+                exponeaInstance.configure(
+                    config.projectSettings,
+                    pushNotificationTracking: config.pushNotificationTracking,
+                    automaticSessionTracking: config.automaticSessionTracking,
+                    defaultProperties: config.defaultProperties,
+                    inAppContentBlocksPlaceholders: config.inAppContentBlockPlaceholdersAutoLoad,
+                    flushingSetup: config.flushingSetup,
+                    allowDefaultCustomerProperties: config.allowDefaultCustomerProperties,
+                    advancedAuthEnabled: config.advancedAuthEnabled,
+                    manualSessionAutoClose: config.manualSessionAutoClose,
+                    applicationID: config.applicationId
+                )
+            }
+            // Apply an initial flush mode right after configure so the first
+            // auto-tracked events (installation/session_start) stay buffered
+            // until the first manual flush, instead of being flushed.
+            if let modeStr = data["flushMode"] as? String, modeStr == "MANUAL" {
+                exponeaInstance.flushingMode = .manual
+            }
             if (!exponeaInstance.isConfigured) {
                 result(FlutterError(code: errorCode, message: ExponeaError.configurationError.errorDescription, details: nil))
             } else {

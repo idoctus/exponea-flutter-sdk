@@ -42,9 +42,6 @@ class ExponeaConfigurationParser {
                     throw ExponeaDataException.invalidValue("pushTokenTrackingFrequency", it)
                 }
             }
-            map.getOptional<Boolean>("requirePushAuthorization")?.let {
-                requirePushAuthorization = it
-            }
             map.getOptional<Map<String, Any?>>("android")?.let {
                 parseAndroidConfig(it, this)
             }
@@ -56,6 +53,9 @@ class ExponeaConfigurationParser {
             }
             map.getOptional<Boolean>("manualSessionAutoClose")?.let {
                 manualSessionAutoClose = it
+            }
+            map.getOptional<Boolean>("regenerateDeviceIdOnAnonymize")?.let {
+                regenerateDeviceIdOnAnonymize = it
             }
             map.getOptional<String>("applicationId")?.let {
                 applicationId = it

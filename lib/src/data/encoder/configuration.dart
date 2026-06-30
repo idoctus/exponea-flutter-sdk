@@ -1,5 +1,6 @@
 import '../model/configuration.dart';
 import '../util/object.dart';
+import 'flush_mode.dart';
 import 'http_log_level.dart';
 import 'notification_importance.dart';
 import 'project.dart';
@@ -37,7 +38,11 @@ abstract class ExponeaConfigurationEncoder {
           ?.map((it) => it.toString())
           .toList(growable: false),
       manualSessionAutoClose: data.getOptional('manualSessionAutoClose'),
-      applicationId: data.getOptional('applicationId')
+      regenerateDeviceIdOnAnonymize: data.getOptional('regenerateDeviceIdOnAnonymize'),
+      applicationId: data.getOptional('applicationId'),
+      flushMode: data
+          .getOptional<String>('flushMode')
+          ?.let(FlushModeEncoder.decode),
     );
   }
 
@@ -61,7 +66,9 @@ abstract class ExponeaConfigurationEncoder {
       'ios': config.ios?.let(IOSExponeaConfigurationEncoder.encode),
       'inAppContentBlockPlaceholdersAutoLoad': config.inAppContentBlockPlaceholdersAutoLoad,
       'manualSessionAutoClose' : config.manualSessionAutoClose,
-      'applicationId' : config.applicationId
+      'regenerateDeviceIdOnAnonymize': config.regenerateDeviceIdOnAnonymize,
+      'applicationId' : config.applicationId,
+      'flushMode': config.flushMode?.let(FlushModeEncoder.encode),
     }..removeWhere((key, value) => value == null);
   }
 }
