@@ -126,5 +126,40 @@ void main() {
         );
       },
     );
+
+    test('passes flushMode to the native configure call', () async {
+      const configuration = ExponeaConfiguration(
+        projectToken: 'mock-project-token',
+        authorizationToken: 'mock-auth-token',
+        flushMode: FlushMode.manual,
+      );
+
+      await platform.configure(configuration);
+
+      final configureCall = calls.singleWhere((c) => c.method == 'configure');
+      final arguments = configureCall.arguments as Map;
+      expect(
+        arguments['flushMode'],
+        'MANUAL',
+        reason:
+            'The native side must receive the flush mode inside the configure '
+            'payload so the SDK starts in that mode; applying it after '
+            'configure is too late to stop the first auto-tracked flush.',
+      );
+    });
+
+    test('omits flushMode from the native configure call when not set',
+        () async {
+      const configuration = ExponeaConfiguration(
+        projectToken: 'mock-project-token',
+        authorizationToken: 'mock-auth-token',
+      );
+
+      await platform.configure(configuration);
+
+      final configureCall = calls.singleWhere((c) => c.method == 'configure');
+      final arguments = configureCall.arguments as Map;
+      expect(arguments.containsKey('flushMode'), isFalse);
+    });
   });
 }

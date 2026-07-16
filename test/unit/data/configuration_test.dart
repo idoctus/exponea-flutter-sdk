@@ -131,10 +131,36 @@ void main() {
             requirePushAuthorization: false,
             appGroup: 'mock-app-group',
           ),
-            applicationId: 'default-application'
+            applicationId: 'default-application',
+          flushMode: FlushMode.manual,
         );
 
         expect(encode(config), fullData);
+      });
+
+      test('flushMode encodes every mode to its wire value', () async {
+        const modes = {
+          FlushMode.manual: 'MANUAL',
+          FlushMode.immediate: 'IMMEDIATE',
+          FlushMode.period: 'PERIOD',
+          FlushMode.appClose: 'APP_CLOSE',
+        };
+        modes.forEach((mode, wireValue) {
+          final config = ExponeaConfiguration(
+            projectToken: 'mock-project-token',
+            authorizationToken: 'mock-auth-token',
+            flushMode: mode,
+          );
+          expect(encode(config)['flushMode'], wireValue);
+        });
+      });
+
+      test('flushMode is omitted when not set', () async {
+        const config = ExponeaConfiguration(
+          projectToken: 'mock-project-token',
+          authorizationToken: 'mock-auth-token',
+        );
+        expect(encode(config).containsKey('flushMode'), false);
       });
     });
 
@@ -170,6 +196,7 @@ void main() {
         expect(decoded.baseUrl, null);
         expect(decoded.android, null);
         expect(decoded.ios, null);
+        expect(decoded.flushMode, null);
       });
 
       test('defaultSession', () async {
@@ -218,6 +245,7 @@ void main() {
         final ios = decoded.ios!;
         expect(ios.requirePushAuthorization, false);
         expect(ios.appGroup, 'mock-app-group');
+        expect(decoded.flushMode, null);
       });
 
       test('full', () async {
@@ -266,6 +294,24 @@ void main() {
         final ios = decoded.ios!;
         expect(ios.requirePushAuthorization, false);
         expect(ios.appGroup, 'mock-app-group');
+        expect(decoded.flushMode, FlushMode.manual);
+      });
+
+      test('flushMode decodes every wire value', () async {
+        const modes = {
+          'MANUAL': FlushMode.manual,
+          'IMMEDIATE': FlushMode.immediate,
+          'PERIOD': FlushMode.period,
+          'APP_CLOSE': FlushMode.appClose,
+        };
+        modes.forEach((wireValue, mode) {
+          final decoded = decode({
+            'projectToken': 'mock-project-token',
+            'authorizationToken': 'mock-auth-token',
+            'flushMode': wireValue,
+          });
+          expect(decoded.flushMode, mode);
+        });
       });
     });
   });

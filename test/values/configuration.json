@@ -106,6 +106,7 @@
       "requirePushAuthorization": false,
       "appGroup": "mock-app-group"
     },
-    "applicationId": "default-application"
+    "applicationId": "default-application",
+    "flushMode": "MANUAL"
   }
 ]

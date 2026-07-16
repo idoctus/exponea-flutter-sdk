@@ -1152,7 +1152,9 @@ public class SwiftExponeaPlugin: NSObject, FlutterPlugin {
             if config.regenerateDeviceIdOnAnonymize == true {
                 let sdkConfiguration = try parser.buildSdkConfiguration(config, data: data)
                 exponeaInstance.configure(with: sdkConfiguration, authContext: nil)
-                exponeaInstance.flushingMode = .immediate
+                // This configure(with:) overload takes a raw Configuration that
+                // does not carry a flushing mode, so apply the parsed one here.
+                exponeaInstance.flushingMode = config.flushingMode
             } else {
                 exponeaInstance.configure(
                     config.projectSettings,
@@ -1166,12 +1168,6 @@ public class SwiftExponeaPlugin: NSObject, FlutterPlugin {
                     manualSessionAutoClose: config.manualSessionAutoClose,
                     applicationID: config.applicationId
                 )
-            }
-            // Apply an initial flush mode right after configure so the first
-            // auto-tracked events (installation/session_start) stay buffered
-            // until the first manual flush, instead of being flushed.
-            if let modeStr = data["flushMode"] as? String, modeStr == "MANUAL" {
-                exponeaInstance.flushingMode = .manual
             }
             if (!exponeaInstance.isConfigured) {
                 result(FlutterError(code: errorCode, message: ExponeaError.configurationError.errorDescription, details: nil))
