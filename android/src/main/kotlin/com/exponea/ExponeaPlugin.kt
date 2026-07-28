@@ -1220,10 +1220,19 @@ class InAppMessageActionStreamHandler private constructor(
     // We have to hold inAppMessage until plugin is initialized and listener set
     private var pendingData: InAppMessageAction? = null
 
-    private var eventSink: EventSink? = null
+    // One sink per engine, broadcast to all of them: with a single sink the last
+    // engine to subscribe steals it, and add-to-app hosts that keep a warmed-up
+    // spare engine always subscribe that invisible engine last, so the visible
+    // one never received the action. Each engine's Dart side decides whether to
+    // act on it (only the engine attached to the host UI navigates).
+    private val eventSinks = CopyOnWriteArrayList<EventSink>()
+
+    private var activeListenerCount = 0
 
     override fun onListen(arguments: Any?, eSink: EventSink?) {
-        eventSink = eSink
+        val sink = eSink ?: return
+        eventSinks.add(sink)
+        activeListenerCount++
         pendingData?.let {
             if (handle(it)) {
                 pendingData = null
@@ -1232,9 +1241,15 @@ class InAppMessageActionStreamHandler private constructor(
     }
 
     override fun onCancel(arguments: Any?) {
-        eventSink = null
-        overrideDefaultBehavior = false
-        trackActions = true
+        // EventChannel doesn't identify which engine cancelled (its sink no-ops
+        // from now on), so only reset when the last listener is gone.
+        activeListenerCount--
+        if (activeListenerCount <= 0) {
+            activeListenerCount = 0
+            eventSinks.clear()
+            overrideDefaultBehavior = false
+            trackActions = true
+        }
     }
 
     override fun inAppMessageClickAction(
@@ -1270,13 +1285,21 @@ class InAppMessageActionStreamHandler private constructor(
     }
 
     private fun handle(action: InAppMessageAction): Boolean {
-        val sink = eventSink
-        if (sink != null) {
-            sink.success(action.toMap())
-            return true
+        val data = action.toMap()
+        var handled = false
+        for (sink in eventSinks) {
+            try {
+                sink.success(data)
+                handled = true
+            } catch (e: Exception) {
+                // Sink of a destroyed engine; drop it.
+                eventSinks.remove(sink)
+            }
         }
-        pendingData = action
-        return false
+        if (!handled) {
+            pendingData = action
+        }
+        return handled
     }
 }
 
