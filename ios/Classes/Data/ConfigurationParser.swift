@@ -105,9 +105,21 @@ class ConfigurationParser {
         return nil
     }
 
+    func parseFlushingMode(_ data: [String:Any?]) throws -> FlushingMode {
+        guard let modeString: String = try data.getOptional("flushMode") else {
+            return .immediate
+        }
+        return try FlushModeEncoder().decode(modeString)
+    }
+
     func parseFlushingSetup(_ data: [String:Any?]) throws -> ExponeaSDK.Exponea.FlushingSetup {
         let maxRetries: Int = try data.getOptional("flushMaxRetries") ?? ExponeaSDK.Constants.Session.maxRetries
-        return ExponeaSDK.Exponea.FlushingSetup(mode: .immediate, maxRetries: maxRetries)
+        // The mode must reach the SDK inside FlushingSetup: applying it after
+        // configure() is too late, because the SDK auto-tracks installation and
+        // session_start during configure and, in the default immediate mode,
+        // each of those schedules a delayed flush that a later mode change
+        // does not cancel.
+        return ExponeaSDK.Exponea.FlushingSetup(mode: try parseFlushingMode(data), maxRetries: maxRetries)
     }
 
     func buildSdkConfiguration(_ config: ExponeaConfiguration, data: [String: Any?]) throws -> Configuration {

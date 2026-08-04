@@ -13,6 +13,9 @@ class ExponeaConfiguration {
     let pushNotificationTracking: ExponeaSDK.Exponea.PushNotificationTracking
     let automaticSessionTracking: ExponeaSDK.Exponea.AutomaticSessionTracking
     let flushingSetup: ExponeaSDK.Exponea.FlushingSetup
+    // Same mode carried by flushingSetup, kept separately because
+    // FlushingSetup.mode is internal to ExponeaSDK and unreadable from here.
+    let flushingMode: FlushingMode
     let defaultProperties: [String: JSONConvertible]?
     var allowDefaultCustomerProperties: Bool? = nil
     var advancedAuthEnabled: Bool? = nil
@@ -25,6 +28,7 @@ class ExponeaConfiguration {
         self.projectSettings = try parser.parseProjectSettings(data)
         self.pushNotificationTracking = try parser.parsePushNotificationTracking(data)
         self.automaticSessionTracking = try parser.parseSessionTracking(data)
+        self.flushingMode = try parser.parseFlushingMode(data)
         self.flushingSetup = try parser.parseFlushingSetup(data)
         self.defaultProperties = try parser.parseDefaultProperties(data)
         if let allowDefaultCustomerProperties = data["allowDefaultCustomerProperties"] as? Bool {
