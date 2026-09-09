@@ -1,6 +1,7 @@
 import 'package:meta/meta.dart';
 
 import 'event_type.dart';
+import 'flush_mode.dart';
 import 'http_log_level.dart';
 import 'integration_config.dart';
 import 'notification_importance.dart';
@@ -84,6 +85,13 @@ class ExponeaConfiguration {
   /// If null, 'applicationId' with default value 'default-application' will be used. Otherwise 'applicationId' must be in specific format see Documentation/configuration.md for more details.
   final String? applicationId;
 
+  /// Initial flush mode applied atomically during configure(), before the SDK
+  /// auto-tracks its first events (installation/session_start). Use
+  /// [FlushMode.manual] to buffer all events locally until the first
+  /// flushData() call — this prevents creating an anonymous customer for
+  /// installs that never identify. If null, the native SDK default is kept.
+  final FlushMode? flushMode;
+
   const ExponeaConfiguration({
     this.integrationConfig,
     this.integrationRouteMap,
@@ -114,6 +122,7 @@ class ExponeaConfiguration {
     this.manualSessionAutoClose,
     this.regenerateDeviceIdOnAnonymize,
     this.applicationId,
+    this.flushMode,
   }) : assert(
           integrationConfig != null ||
               (projectToken != null && authorizationToken != null),
@@ -137,6 +146,7 @@ class ExponeaConfiguration {
     bool? manualSessionAutoClose,
     bool? regenerateDeviceIdOnAnonymize,
     String? applicationId,
+    FlushMode? flushMode,
   }) {
     return ExponeaConfiguration(
       integrationConfig: StreamIntegrationConfig(
@@ -156,6 +166,7 @@ class ExponeaConfiguration {
       manualSessionAutoClose: manualSessionAutoClose,
       regenerateDeviceIdOnAnonymize: regenerateDeviceIdOnAnonymize,
       applicationId: applicationId,
+      flushMode: flushMode,
     );
   }
 }

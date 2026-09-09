@@ -1,6 +1,7 @@
 import '../model/configuration.dart';
 import '../normalization/configuration_normalizer.dart';
 import '../util/object.dart';
+import 'flush_mode.dart';
 import 'http_log_level.dart';
 import 'integration_config.dart';
 import 'notification_importance.dart';
@@ -58,6 +59,9 @@ abstract class ExponeaConfigurationEncoder {
       manualSessionAutoClose: data.getOptional('manualSessionAutoClose'),
       regenerateDeviceIdOnAnonymize: data.getOptional('regenerateDeviceIdOnAnonymize'),
       applicationId: data.getOptional('applicationId'),
+      flushMode: data
+          .getOptional<String>('flushMode')
+          ?.let(FlushModeEncoder.decode),
     );
   }
 
@@ -85,6 +89,7 @@ abstract class ExponeaConfigurationEncoder {
       'manualSessionAutoClose': config.manualSessionAutoClose,
       'regenerateDeviceIdOnAnonymize': config.regenerateDeviceIdOnAnonymize,
       'applicationId': config.applicationId,
+      'flushMode': config.flushMode?.let(FlushModeEncoder.encode),
     }..removeWhere((key, value) => value == null);
   }
 }

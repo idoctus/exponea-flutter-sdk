@@ -895,12 +895,27 @@ private class ExponeaMethodHandler(private val context: Context) : MethodCallHan
             data.getOptional<Map<String, Any?>>("customerIdentity"),
         )
         val alreadyConfigured = Exponea.isInitialized
+
+        // Apply an initial flush mode atomically around init() so the SDK's
+        // first auto-tracked events (installation/session_start) are buffered
+        // instead of flushed. Set before init (best effort; the setter no-ops
+        // if not yet initialized on some SDK versions) and again right after,
+        // synchronously, before the async flush coroutine can run.
+        val initialFlushMode = (data["flushMode"] as? String)?.let {
+            runCatching { FlushMode.valueOf(it) }.getOrNull()
+        }
+        if (initialFlushMode != null) {
+            runCatching { Exponea.flushMode = initialFlushMode }
+        }
         if (!alreadyConfigured) {
             if (customerIdentity != null) {
                 Exponea.init(activity ?: context, configuration, customerIdentity)
             } else {
                 Exponea.init(activity ?: context, configuration)
             }
+        }
+        if (initialFlushMode != null) {
+            Exponea.flushMode = initialFlushMode
         }
         if (!alreadyConfigured || this.configuration == null) {
             this.configuration = configuration
@@ -1262,10 +1277,19 @@ class InAppMessageActionStreamHandler private constructor(
     // We have to hold inAppMessage until plugin is initialized and listener set
     private var pendingData: InAppMessageAction? = null
 
-    private var eventSink: EventSink? = null
+    // One sink per engine, broadcast to all of them: with a single sink the last
+    // engine to subscribe steals it, and add-to-app hosts that keep a warmed-up
+    // spare engine always subscribe that invisible engine last, so the visible
+    // one never received the action. Each engine's Dart side decides whether to
+    // act on it (only the engine attached to the host UI navigates).
+    private val eventSinks = CopyOnWriteArrayList<EventSink>()
+
+    private var activeListenerCount = 0
 
     override fun onListen(arguments: Any?, eSink: EventSink?) {
-        eventSink = eSink
+        val sink = eSink ?: return
+        eventSinks.add(sink)
+        activeListenerCount++
         pendingData?.let {
             if (handle(it)) {
                 pendingData = null
@@ -1274,9 +1298,15 @@ class InAppMessageActionStreamHandler private constructor(
     }
 
     override fun onCancel(arguments: Any?) {
-        eventSink = null
-        overrideDefaultBehavior = false
-        trackActions = true
+        // EventChannel doesn't identify which engine cancelled (its sink no-ops
+        // from now on), so only reset when the last listener is gone.
+        activeListenerCount--
+        if (activeListenerCount <= 0) {
+            activeListenerCount = 0
+            eventSinks.clear()
+            overrideDefaultBehavior = false
+            trackActions = true
+        }
     }
 
     override fun inAppMessageClickAction(
@@ -1312,13 +1342,21 @@ class InAppMessageActionStreamHandler private constructor(
     }
 
     private fun handle(action: InAppMessageAction): Boolean {
-        val sink = eventSink
-        if (sink != null) {
-            sink.success(action.toMap())
-            return true
+        val data = action.toMap()
+        var handled = false
+        for (sink in eventSinks) {
+            try {
+                sink.success(data)
+                handled = true
+            } catch (e: Exception) {
+                // Sink of a destroyed engine; drop it.
+                eventSinks.remove(sink)
+            }
         }
-        pendingData = action
-        return false
+        if (!handled) {
+            pendingData = action
+        }
+        return handled
     }
 }
 

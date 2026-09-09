@@ -1166,6 +1166,14 @@ public class SwiftExponeaPlugin: NSObject, FlutterPlugin {
                     applicationID: config.applicationId
                 )
             }
+            // Apply an initial flush mode right after configure so the first
+            // auto-tracked events (installation/session_start) stay buffered
+            // until the first manual flush, instead of being flushed. Both
+            // configure paths above land on .immediate (the native parser
+            // hardcodes it), so this override has to come after them.
+            if let modeStr = data["flushMode"] as? String, modeStr == "MANUAL" {
+                exponeaInstance.flushingMode = .manual
+            }
 
             if (!exponeaInstance.isConfigured) {
                 result(FlutterError(code: errorCode, message: ExponeaError.configurationError.errorDescription, details: nil))
