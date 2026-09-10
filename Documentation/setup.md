@@ -17,6 +17,10 @@ The Exponea Flutter SDK can be installed or updated through a dependency in your
 >
 > Refer to [Flutter SDK release notes](https://documentation.bloomreach.com/engagement/docs/flutter-sdk-release-notes) for the latest Exponea Flutter SDK release.
 
+> ❗️
+>
+> **SDK versions 3.0.0 and higher** require **Dart 3.0+** and **Flutter 3.10+** (sealed-class API for Stream/JWT integration types). Upgrade your toolchain before updating to a JWT/Stream release. For more information, see [Flutter SDK version update guide](https://documentation.bloomreach.com/engagement/docs/flutter-sdk-version-update#update-to-version-300-or-higher).
+
 ### Add dependency
 
 In your project's `pubspec.yaml` file, add a dependency to the Exponea Flutter SDK under `dependencies:`:
@@ -42,7 +46,27 @@ Then run the following command:
 pod install
 ```
 
-The minimum supported iOS version for the SDK is 13.0. You may need to change the iOS version on the first line of your `ios/Podfile` to `platform :ios, '13.0'`, or higher.
+The minimum supported iOS version for the SDK is 15.0. You may need to change the iOS version on the first line of your `ios/Podfile` to `platform :ios, '15.0'`, or higher.
+
+> ❗️
+>
+> **Xcode 27 compatibility:** CocoaPods sets each pod target's deployment target from that pod's podspec, not from your app's `platform :ios` line alone. Flutter plugins and other transitive dependencies may still declare iOS 9.0–13.0. Add or merge the following `post_install` hook in your `ios/Podfile` (keep any existing `flutter_additional_ios_build_settings` call):
+>
+> ```ruby
+> post_install do |installer|
+>   installer.pods_project.targets.each do |target|
+>     target.build_configurations.each do |config|
+>       deployment_target = config.build_settings['IPHONEOS_DEPLOYMENT_TARGET']
+>       if deployment_target.nil? || deployment_target.to_f < 15.0
+>         config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
+>       end
+>     end
+>     flutter_additional_ios_build_settings(target)
+>   end
+> end
+> ```
+>
+> After changing the Podfile, run `pod install` again. Set **iOS Deployment Target** to 15.0 or higher for your app target and any notification extensions in Xcode.
 
 ### Android setup
 
@@ -56,6 +80,24 @@ android {
         minSdkVersion 24
     }
 ```
+
+#### Android Auto Backup and SDK SharedPreferences
+
+The Flutter SDK relies on the [native Android SDK](https://documentation.bloomreach.com/engagement/docs/android-sdk) to persist data in dedicated SharedPreferences files, for example `EXPONEA_PREFERENCES.xml` and `EXPONEA_PUSH_TOKEN.xml`. The native SDK ships with default Android Auto Backup rules that exclude only the push token and short-lived authentication data from backup.
+
+If your app doesn't define its own backup rules, the SDK defaults apply automatically. No additional action required.
+
+If your app defines its own backup rules, or you want to exclude SDK SharedPreferences from Auto Backup, configure them in your Flutter project's Android host app:
+
+- `android/app/src/main/AndroidManifest.xml`
+- `android/app/src/main/res/xml/backup_rules.xml` (API 30 and below)
+- `android/app/src/main/res/xml/data_extraction_rules.xml` (API 31 and above)
+
+> 📘
+>
+> For XML examples and default backup behavior, follow the instructions in [Android Auto Backup and SDK SharedPreferences](https://documentation.bloomreach.com/engagement/docs/android-sdk-setup#android-auto-backup-and-sdk-sharedpreferences) in the native Android SDK documentation.
+>
+> If you get a build error such as `Manifest merger failed` for `fullBackupContent` or `dataExtractionRules`, see [Build error "Manifest merger failed"](https://documentation.bloomreach.com/engagement/docs/android-sdk-setup#build-error-manifest-merger-failed) in the native Android SDK documentation.
 
 ## Initialize the SDK
 
@@ -73,7 +115,10 @@ Now that you have installed the SDK in your project, you must import, configure,
 >
 > Refer to [Stop SDK integration](https://documentation.bloomreach.com/engagement/docs/flutter-sdk-tracking#stop-sdk-integration) for details.
 
-The required configuration parameters are `projectToken`, `authorizationToken`, and `baseURL`. You can find these in the Bloomreach Engagement webapp under `Project settings` > `Access management` > `API`.
+The required configuration parameter is `integrationConfig`. Choose one of two types depending on your integration:
+
+- **`ProjectIntegrationConfig`** — for a standard {user.mkg} integration. Requires `projectToken`, `authorizationToken`, and `baseUrl`. Find your credentials in the {user.mkg} webapp under **Project settings** > **Access management** > **API**.
+- **`StreamIntegrationConfig`** — for a {user.dh} [event stream](https://documentation.bloomreach.com/data-hub/docs/event-streams) integration. Requires `streamId` and an optional `baseUrl`. Find your stream ID in the {user.dh} app under **Event streams** > select your stream > **Access Security**.
 
 > 📘
 >
@@ -85,25 +130,85 @@ Import the SDK:
 import 'package:exponea/exponea.dart';
 ```
 
-Initialize the SDK:
+Initialize the SDK with a `ProjectIntegrationConfig`:
 
 ```dart
 final _plugin = ExponeaPlugin();
 final configuration = ExponeaConfiguration(
-  projectToken: 'YOUR_PROJECT_TOKEN',
-  authorizationToken: 'YOUR_API_KEY',
-  // default baseUrl value is https://api.exponea.com
-  baseUrl: 'YOUR_API_BASE_URL', 
+  integrationConfig: ProjectIntegrationConfig(
+    projectToken: 'YOUR_PROJECT_TOKEN',
+    authorizationToken: 'Token YOUR_API_KEY',
+    // default baseUrl value is https://api.exponea.com
+    baseUrl: 'YOUR_API_BASE_URL',
+  ),
 );
-_plugin.configure(configuration).catchError((error) {
+await _plugin.configure(configuration).catchError((error) {
   print('Error: $error');
   return false;
 });
 ```
 
+Or initialize with a `StreamIntegrationConfig`:
+
+```dart
+final _plugin = ExponeaPlugin();
+final configuration = ExponeaConfiguration(
+  integrationConfig: StreamIntegrationConfig(
+    streamId: 'YOUR_STREAM_ID',
+    // default baseUrl value is https://api.exponea.com
+    baseUrl: 'YOUR_API_BASE_URL',
+  ),
+);
+await _plugin.configure(configuration).catchError((error) {
+  print('Error: $error');
+  return false;
+});
+```
+
+> 📘 Note
+>
+> - For detailed JWT setup, see [SDK auth token authorization](https://documentation.bloomreach.com/engagement/docs/flutter-sdk-authorization#sdk-auth-token-authorization).
+> - See the {user.dh} documentation to learn how to [configure Flutter SDK with JWT authentication](https://documentation.bloomreach.com/data-hub/docs/configure-flutter-sdk-with-jwt-authentication) for event streams.
+
+### Initialize with customer identity
+
+Optionally, provide a `CustomerIdentity` as the `customerIdentifier` argument to `configure()` to identify the customer immediately during initialization:
+
+```dart
+final _plugin = ExponeaPlugin();
+
+final customerIdentity = CustomerIdentity(
+  customerIds: {'registered': 'jane.doe@example.com'},
+  sdkAuthToken: 'your-jwt-token',
+);
+
+await _plugin.configure(
+  ExponeaConfiguration(
+    integrationConfig: StreamIntegrationConfig(
+      streamId: 'YOUR_STREAM_ID',
+      baseUrl: 'YOUR_API_BASE_URL',
+    ),
+  ),
+  customerIdentifier: customerIdentity,
+);
+```
+
+For Stream integrations, subscribe to `sdkAuthErrorStream` before `configure()` so auth errors during initialization are handled immediately. For more information, see [sdkAuthErrorStream](https://documentation.bloomreach.com/engagement/docs/flutter-sdk-authorization#sdkautherrorstream).
+
+Legacy initialization with flat project fields (deprecated) still works:
+
+```dart
+final configuration = ExponeaConfiguration(
+  projectToken: 'YOUR_PROJECT_TOKEN',
+  authorizationToken: 'YOUR_API_KEY',
+  baseUrl: 'YOUR_API_BASE_URL',
+);
+await _plugin.configure(configuration);
+```
+
 #### Configure application ID
 
-**Multiple mobile apps:** If your Engagement project supports multiple mobile apps, specify the `applicationId` in your configuration. This helps distinguish between different apps in your project.
+**Multiple mobile apps:** If your {user.mkg} project supports multiple mobile apps, specify the `applicationId` in your configuration. This helps distinguish between different apps in your project.
 
 
 ```dart
@@ -113,9 +218,9 @@ final configuration = ExponeaConfiguration(
     ...
 ```
 
-Make sure your `applicationId` value matches exactly Application ID configured in your Bloomreach Engagement under **Project Settings > Campaigns > Channels > Push Notifications.**
+Make sure your `applicationId` value matches exactly Application ID configured in your {user.mkg} under **Project Settings > Campaigns > Channels > Push Notifications.**
 
-**Single mobile app:** If your Engagement project supports only one app, you can skip the `applicationId` configuration. The SDK will automatically use the default value "default-application".
+**Single mobile app:** If your {user.mkg} project supports only one app, you can skip the `applicationId` configuration. The SDK will automatically use the default value "default-application".
 
 
 ### Configure the SDK on every Flutter engine attach
@@ -174,4 +279,4 @@ _plugin.setLogLevel(LogLevel.verbose);
 
 ### Data flushing
 
-Read [Data flushing](https://documentation.bloomreach.com/engagement/docs/flutter-sdk-data-flushing) to learn more about how the SDK uploads data to the Engagement API and how to customize this behavior.
+Read [Data flushing](https://documentation.bloomreach.com/engagement/docs/flutter-sdk-data-flushing) to learn more about how the SDK uploads data to the {user.mkg} API and how to customize this behavior.

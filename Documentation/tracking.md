@@ -9,7 +9,7 @@ content:
   excerpt: Track customers and events using the Flutter SDK
 ---
 
-You can track events in Engagement to learn more about your app’s usage patterns and to segment your customers by their interactions.
+You can track events in {user.mkg} to learn more about your app’s usage patterns and to segment your customers by their interactions.
 
 By default, the SDK tracks certain events automatically, including:
 
@@ -23,7 +23,7 @@ Additionally, you can track any custom event relevant to your business.
 
 > 📘
 >
-> Also see [Mobile SDK tracking FAQ](https://support.bloomreach.com/hc/en-us/articles/18153058904733-Mobile-SDK-tracking-FAQ) at Bloomreach Support Help Center.
+> Also see [Mobile SDK tracking FAQ](https://support.bloomreach.com/hc/en-us/articles/18153058904733-Mobile-SDK-tracking-FAQ) at {user.br} Support Help Center.
 
 > ❗️ Protect the privacy of your customers
 >
@@ -120,9 +120,9 @@ Without identification, events are tracked for an anonymous customer, only ident
 
 ### Identify
 
-Use the `identifyCustomer()` method with a `Customer` object as an argument to identify a customer using their unique [hard ID](https://documentation.bloomreach.com/engagement/docs/customer-identification#hard-id).
+Use the `identifyCustomer()` method to identify a customer using their unique [hard ID](https://documentation.bloomreach.com/engagement/docs/customer-identification#hard-id).
 
-The default hard ID is `registered` and its value is typically the customer's email address. However, your Engagement project may define a different hard ID.
+The default hard ID is `registered` and its value is typically the customer's email address. However, your {user.mkg} project may define a different hard ID.
 
 Optionally, you can track additional customer properties such as first and last names, age, etc.
 
@@ -134,56 +134,84 @@ Although you can use `identifyCustomer` with a [soft ID](https://documentation.b
 
 > ❗️Warning
 >
-> If a customer profile is anonymized or deleted in the Bloomreach Engagement web app, initializing the SDK again in the app can cause the profile to be reidentified or recreated from locally cached data. Always clear local data appropriately to prevent unintended profile recreation.
-
+> If a customer profile is anonymized or deleted in the {user.mkg} web app, initializing the SDK again in the app can cause the profile to be reidentified or recreated from locally cached data. Always clear local data appropriately to prevent unintended profile recreation.
 
 #### Arguments
 
-| Name                     | Type                  | Description |
-| ------------------------ | --------------------- | ----------- |
-| customer **(required)**  | [Customer](#customer) | Customer object. |
+`identifyCustomer` accepts a `CustomerIdentifier` — either `Customer` (project mode, legacy) or `CustomerIdentity` (Stream mode, preferred):
 
-##### Customer
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| `identifier` **(required)** | `CustomerIdentifier` | `Customer` or `CustomerIdentity`. |
+| `properties` | `Map<String, dynamic>?` | Dictionary of customer properties. Optional; defaults to none. |
 
-| Name               | Type                 | Description |
-| -------------------| -------------------- | ----------- |
-| ids **(required)** | Map<String, String>  | Dictionary of customer unique identifiers. Only identifiers defined in the Engagement project are accepted. |
-| properties         | Map<String, dynamic> | Dictionary of customer properties. |
+**Using `CustomerIdentity` (preferred for Stream mode)**
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `customerIds` **(required)** | `Map<String, String>` | Dictionary of customer unique identifiers. Only identifiers defined in the {user.mkg} project are accepted. |
+| `sdkAuthToken` | `String?` | Stream JWT. If provided, stored persistently. If omitted, any previously set auth token is cleared. |
+
+**Using `Customer` (project mode)**
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `ids` **(required)** | `Map<String, String>` | Dictionary of customer unique identifiers. |
+| `properties` | `Map<String, dynamic>` | Dictionary of customer properties. Passed as part of the `Customer` object, not as a separate argument. |
 
 #### Examples
 
-First, create a `Customer` object containing at least the customer's hard ID and, optionally, a dictionary with additional customer properties:
+Using `CustomerIdentity`:
 
 ```dart
-final customer = Customer(
-  ids: {
-    'registered': 'jane.doe@example.com',
-  },
+await _plugin.identifyCustomer(
+  CustomerIdentity(
+    customerIds: {'registered': 'jane.doe@example.com'},
+  ),
   properties: {
     'first_name': 'Jane',
     'last_name': 'Doe',
-    'age', 32
+    'age': 32,
   },
 );
 ```
 
-Pass the customer object to `identifyCustomer()`:
+Without additional properties:
 
 ```dart
-_plugin.identifyCustomer(customer);
+await _plugin.identifyCustomer(
+  CustomerIdentity(
+    customerIds: {'registered': 'jane.doe@example.com'},
+  ),
+);
 ```
 
-If you only want to update the customer ID without any additional properties, you can pass an empty dictionary into `properties`:
+To identify a customer and set the SDK auth token at the same time, include the token in `CustomerIdentity`:
+
+```dart
+await _plugin.identifyCustomer(
+  CustomerIdentity(
+    customerIds: {'registered': 'jane.doe@example.com'},
+    sdkAuthToken: 'your-jwt-token',
+  ),
+);
+```
+
+Using legacy `Customer` (project mode):
 
 ```dart
 final customer = Customer(
-  ids: {
-    'registered': 'jane.doe@example.com',
+  ids: {'registered': 'jane.doe@example.com'},
+  properties: {
+    'first_name': 'Jane',
+    'last_name': 'Doe',
+    'age': 32,
   },
-  properties: {},
 );
 _plugin.identifyCustomer(customer);
 ```
+
+You can also supply an initial `CustomerIdentity` at SDK initialization—see [Initialize with customer identity](https://documentation.bloomreach.com/engagement/docs/flutter-sdk-setup#initialize-with-customer-identity).
 
 ### Anonymize
 
@@ -191,40 +219,76 @@ Use the `anonymize()` method to delete all information stored locally and reset 
 
 Invoking this method will cause the SDK to:
 
-* Remove the push notification token for the current customer from local device storage and the customer profile in Engagement.
+* Remove the push notification token for the current customer from local device storage and the customer profile in {user.mkg}.
 * Clear local repositories and caches, excluding tracked events.
 * Track a new session start if `automaticSessionTracking` is enabled.
-* Create a new customer record in Engagement (a new `cookie` soft ID is generated).
+* Create a new customer record in {user.mkg} (a new `cookie` soft ID is generated).
 * Regenerate `device_id` for the new customer if `regenerateDeviceIdOnAnonymize` is set to `true`.
   For more information, see [SDK configuration](https://documentation.bloomreach.com/engagement/docs/flutter-sdk-configuration).
 * Assign the previous push notification token to the new customer record.
 * Preload in-app messages, in-app content blocks, and app inbox for the new customer.
 * Track a new `installation` event for the new customer.
 
-#### How tokens are removed during anonymization
-
-The SDK removes push notification tokens differently depending on the version:
-
-**SDK versions below 2.3.0:**
-
-- Assigns an empty string to the `google_push_notification_id`, `huawei_push_notification_id`, or `apple_push_notification_id` customer property.
-
-**SDK versions 2.3.0 and higher:**
-
-- Tracks a `notification_state` event with `valid = false` and `description = Invalidated`
+You can also use the `anonymize` method to switch to a different integration configuration. The SDK will then track events to a new customer record in the new project or stream, similar to the first app session after installation on a new device.
 
 > 📘 Note
 >
-> Learn more about [Token tracking via notification_state event](https://documentation.bloomreach.com/engagement/docs/flutter-sdk-push-notifications#token-tracking-via-notification_state-event).
+> When the SDK is configured with `StreamIntegrationConfig` and an SDK auth token is set, the SDK attempts a best-effort flush of pending events before clearing local data.
 
-You can also use the `anonymize` method to switch to a different Engagement project. The SDK will then track events to a new customer record in the new project, similar to the first app session after installation on a new device.
+> ❗️ Avoid anonymous events on logout
+>
+> `anonymize()` creates a new anonymous customer profile and tracks subsequent events against it. If you don't want to generate events against an unidentified profile, use [`stopIntegration()`](#stop-sdk-integration) on logout instead—unlike `anonymize()`, it does not create a new anonymous profile. This is especially relevant for `StreamIntegrationConfig` integrations using an [SDK auth token (JWT)](https://documentation.bloomreach.com/engagement/docs/flutter-sdk-authorization#sdk-auth-token-authorization) on a stream configured with signed-only permissions.
+
+Pass an optional [`ConfigurationChange`](#configurationchange) argument to change the default integration or route map. Use `IntegrationConfigurationChange` with `IntegrationConfig` (preferred) or the legacy `ExponeaConfigurationChange` with `ExponeaProject`.
 
 #### Examples
 
-```dart
-_plugin.anonymize();```
+Reset without switching integration:
 
-Switch to a different project:
+```dart
+_plugin.anonymize();
+```
+
+Switch to a different project (using `ProjectIntegrationConfig`):
+
+```dart
+_plugin.anonymize(
+  IntegrationConfigurationChange(
+    integrationConfig: ProjectIntegrationConfig(
+      projectToken: 'new-project-token',
+      authorizationToken: 'Token new-auth-token',
+    ),
+    integrationRouteMap: {
+      EventType.payment: [
+        ProjectIntegrationConfig(
+          projectToken: 'special-project-for-payments',
+          authorizationToken: 'Token payment-auth',
+          baseUrl: 'https://api-payments.some-domain.com',
+        ),
+      ],
+    },
+  ),
+);
+```
+
+Switch to a different stream integration:
+
+```dart
+_plugin.anonymize(
+  IntegrationConfigurationChange(
+    integrationConfig: StreamIntegrationConfig(
+      streamId: 'new-stream-id',
+      baseUrl: 'https://api.exponea.com',
+    ),
+  ),
+);
+```
+
+> 📘
+>
+> When switching to a `StreamIntegrationConfig` with `anonymize()`, `integrationRouteMap` is not supported and will be ignored. Provide a new `CustomerIdentity` via `identifyCustomer()` after anonymization if a Stream JWT is needed for the new customer.
+
+Legacy style — switch project with `ExponeaProject` (deprecated):
 
 ```dart
 final configChange = ExponeaConfigurationChange(
@@ -245,6 +309,17 @@ final configChange = ExponeaConfigurationChange(
 _plugin.anonymize(configChange);
 ```
 
+> 📘
+>
+> On iOS, passing only `integrationRouteMap` without `integrationConfig` results in the route map being silently ignored. This is a native SDK limitation with no workaround at the wrapper layer.
+
+##### ConfigurationChange
+
+Sealed supertype for the optional `anonymize()` argument:
+
+* **`IntegrationConfigurationChange`** (preferred) — accepts `IntegrationConfig` and `integrationRouteMap`.
+* **`ExponeaConfigurationChange`** (deprecated) — accepts `ExponeaProject` and `projectMapping`.
+
 ## Sessions
 
 The SDK tracks sessions automatically by default, producing two events: `session_start` and `session_end`.
@@ -258,6 +333,24 @@ The default session timeout is 60 seconds. Set `sessionTimeout` in the [SDK conf
 To disable automatic session tracking, set `automaticSessionTracking` to `false` in the [SDK configuration](https://documentation.bloomreach.com/engagement/docs/flutter-sdk-configuration).
 
 Use the `trackSessionStart()` and `trackSessionEnd()` methods to track sessions manually.
+
+#### How tokens are removed during anonymization
+
+The SDK removes push notification tokens differently depending on the version:
+
+**SDK versions below 2.3.0:**
+
+- Assigns an empty string to the `google_push_notification_id`, `huawei_push_notification_id`, or `apple_push_notification_id` customer property.
+
+**SDK versions 2.3.0 and higher:**
+
+- Tracks a `notification_state` event with `valid = false` and `description = Invalidated`
+
+> 📘 Note
+>
+> Learn more about [Token tracking via notification_state event](https://documentation.bloomreach.com/engagement/docs/flutter-sdk-push-notifications#token-tracking-via-notification_state-event).
+
+You can also use the `anonymize` method to switch to a different {user.mkg} project. The SDK will then track events to a new customer record in the new project, similar to the first app session after installation on a new device.
 
 #### Examples
 
@@ -274,6 +367,25 @@ _plugin_.trackSessionEnd()
 The SDK automatically tracks a number of default properties for the `session_start` and `session_end` events, including `ip`, `city`, `country`, etc.
 
 You can override the value of any of these properties by including them in the `defaultProperties` configuration parameter (see below). For example, if you don't want to track customers' IP addresses, you can set the `ip` property's default value to an empty string.
+
+### Get the current customer cookie
+
+Use `getCustomerCookie()` to retrieve the cookie that identifies the current customer being tracked. The value is available only after the SDK is initialized.
+
+By default, the SDK tracks events for an anonymous customer identified by a cookie. When you identify the customer with a hard ID, the SDK keeps using the same cookie alongside the hard ID. The cookie persists until you call:
+
+* `ExponeaPlugin().anonymize()` to generate a new cookie immediately.
+* `ExponeaPlugin().stopIntegration()` or `ExponeaPlugin().clearLocalCustomerData(appGroup)` to remove the cookie. A new one is created only on the next SDK initialization.
+
+Use this cookie value to work with the current anonymous identity in your app, for example, to synchronize identity with a webview.
+
+#### Example
+
+```dart
+_plugin_.getCustomerCookie()
+    .then((cookie) => print(cookie))
+    .catchError((error) => print('Error: $error'));
+```
 
 ## Push notifications
 
@@ -497,7 +609,7 @@ final subscription = _plugin.inAppMessageActionStream(overrideDefaultBehavior: o
 
 #### Stop the SDK but upload tracked data
 
-The SDK caches data (such as sessions, events, and customer properties) in an internal local database and periodically sends them to Bloomreach Engagement. These data are kept locally if the device has no network, or if you configured SDK to upload them less frequently.
+The SDK caches data (such as sessions, events, and customer properties) in an internal local database and periodically sends them to {user.mkg}. These data are kept locally if the device has no network, or if you configured SDK to upload them less frequently.
 
 Invoking the `stopIntegration()` method will remove all these locally stored data that may not be uploaded yet. To avoid loss of these data, invoke request to flush them before stopping the SDK:
 
@@ -514,11 +626,11 @@ _plugin.stopIntegration();
 
 #### Stop the SDK and wipe all tracked data
 
-The SDK caches data (such as sessions, events, and customer properties) in an internal local database and periodically sends them to the Bloomreach Engagement app. These data are kept locally if the device has no network, or if you configured SDK to upload them less frequently.
+The SDK caches data (such as sessions, events, and customer properties) in an internal local database and periodically sends them to the {user.mkg} app. These data are kept locally if the device has no network, or if you configured SDK to upload them less frequently.
 
-If a customer is removed from the Bloomreach Engagement platform, you may also need to remove their data from local storage.
+If a customer is removed from the {user.mkg} platform, you may also need to remove their data from local storage.
 
-**Don't initialize the SDK after deleting the customer.** Depending on your configuration, initializing the SDK could trigger an upload of any locally stored events, which may unintentionally recreate the customer profile in Bloomreach Engagement using the stored customer IDs.
+**Don't initialize the SDK after deleting the customer.** Depending on your configuration, initializing the SDK could trigger an upload of any locally stored events, which may unintentionally recreate the customer profile in {user.mkg} using the stored customer IDs.
 
 To prevent this, invoke `stopIntegration()` immediately without initializing the SDK:
 
@@ -547,7 +659,7 @@ This results in the SDK stopping all internal processes (such as session trackin
 
 > ❗️
 >
-> After calling `stopIntegration()`, the SDK will not track or upload any further data. If you need to upload any tracked data to Bloomreach Engagement before stopping the SDK, [flush the data synchronously](#stop-the-sdk-but-upload-tracked-data) before invoking `stopIntegration()`.
+> After calling `stopIntegration()`, the SDK will not track or upload any further data. If you need to upload any tracked data to {user.mkg} before stopping the SDK, [flush the data synchronously](#stop-the-sdk-but-upload-tracked-data) before invoking `stopIntegration()`.
 
 #### Customer denies tracking consent
 

@@ -7,13 +7,13 @@ parent:
   uri: flutter-sdk-setup
 content:
   excerpt: >-
-    Learn how the Flutter SDK uploads data to the Engagement API and how to
+    Learn how the Flutter SDK uploads data to the Marketing API and how to
     customize this behavior
 ---
 
 ## Data flushing
 
-The SDK caches data (sessions, events, customer properties, etc.) in an internal database and periodically sends it to the Engagement API. After the data has been uploaded, the values in the Engagement web app are updated, and the cached data is removed from the SDK's internal database. This process is called **data flushing**.
+The SDK caches data (sessions, events, customer properties, etc.) in an internal database and periodically sends it to the {user.mkg} API. After the data has been uploaded, the values in the {user.mkg} web app are updated, and the cached data is removed from the SDK's internal database. This process is called **data flushing**.
 
 By default, the SDK automatically flushes the data as soon as it is tracked or when the application is backgrounded. You can configure the [flushing mode](#flushing-modes) to customize this behavior to suit your needs.
  
@@ -51,5 +51,27 @@ ExponeaPlugin().setFlushPeriod(period);
 To manually trigger a data flush to the API, use the following method:
 
 ```dart
-ExponeaPlugin().flushData();
+await ExponeaPlugin().flushData();
+```
+
+`flushData()` returns a `Future<void>` that completes when the native flush finishes uploading all pending events—including any queued customer identify—to the backend.
+
+Caches refreshed as a result of the upload (for example, in-app messages) are re-fetched asynchronously and separately from the flush. Caches may still be populating when the future resolves; under normal conditions this finishes shortly after.
+
+The method can be called in any [flushing mode](#flushing-modes), without the need to switch to`FlushMode.manual`.
+
+Awaiting the returned future is the recommended way to sequence operations that depend on the upload completing. The most common case is identifying a customer and then tracking an event whose evaluation depends on the updated customer state:
+
+```dart
+await ExponeaPlugin().identifyCustomer(customer);
+await ExponeaPlugin().flushData();
+await ExponeaPlugin().trackSessionStart();
+```
+
+If you don't need to wait for the upload to finish, you can drop the future:
+
+```dart
+import 'dart:async'; // for unawaited
+
+unawaited(ExponeaPlugin().flushData().catchError((_) {}));
 ```

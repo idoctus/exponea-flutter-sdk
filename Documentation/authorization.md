@@ -9,7 +9,7 @@ content:
   excerpt: Full authorization reference for the Flutter SDK
 ---
 
-The SDK exchanges data with the Engagement APIs through authorized HTTP/HTTPS communication. The SDK supports two authorization modes: the default **token authorization** for public API access and the more secure **customer token authorization** for private API access. Developers can choose the appropriate authorization mode for the required level of security.
+The SDK exchanges data with the {user.mkg} APIs through authorized HTTP/HTTPS communication. The SDK supports two authorization modes: the default **token authorization** for public API access and the more secure **customer token authorization** for private API access. Developers can choose the appropriate authorization mode for the required level of security.
 
 ## Token authorization
 
@@ -45,16 +45,16 @@ final configured = await _plugin.configure(config);
 
 ## Customer token authorization
 
-Customer token authorization is optional and provides [private API access](https://documentation.bloomreach.com/engagement/docs/authentication#private-api-access) to select Engagement API endpoints. The [customer token](https://documentation.bloomreach.com/engagement/docs/customer-token) contains encoded customer IDs and a signature. When the Bloomreach Engagement API receives a customer token, it first verifies the signature and only processes the request if the signature is valid.
+Customer token authorization is optional and provides [private API access](https://documentation.bloomreach.com/engagement/docs/authentication#private-api-access) to select {user.mkg} API endpoints. The [customer token](https://documentation.bloomreach.com/engagement/docs/customer-token) contains encoded customer IDs and a signature. When the {user.mkg} API receives a customer token, it first verifies the signature and only processes the request if the signature is valid.
 
 The customer token is encoded using **JSON Web Token (JWT)**, an open industry standard [RFC 7519](https://tools.ietf.org/html/rfc7519) that defines a compact and self-contained way for securely transmitting information between parties.
 
-The SDK sends the customer token in `Bearer <value>` format. Currently, the SDK supports customer token authorization for the following Engagement API endpoints:
+The SDK sends the customer token in `Bearer <value>` format. Currently, the SDK supports customer token authorization for the following {user.mkg} API endpoints:
 
 * `POST /webxp/projects/<projectToken>/appinbox/fetch` for fetching of AppInbox data
 * `POST /webxp/projects/<projectToken>/appinbox/markasread` for marking of AppInbox message as read
 
-Developers can enable customer token authorization by setting the `advancedAuthEnabled` [configuration](https://documentation.bloomreach.com/engagement/docs/ios-sdk-configuration) parameter to `true` when [initializing the SDK](https://documentation.bloomreach.com/engagement/docs/ios-sdk-setup#initialize-the-sdk):
+Developers can enable customer token authorization by setting the `advancedAuthEnabled` [configuration](https://documentation.bloomreach.com/engagement/docs/flutter-sdk-configuration) parameter to `true` when [initializing the SDK](https://documentation.bloomreach.com/engagement/docs/flutter-sdk-setup#initialize-the-sdk):
 
 ```dart
 final _plugin = ExponeaPlugin();
@@ -262,7 +262,7 @@ public class ExampleAuthProvider: NSObject, AuthorizationProviderType {
 
 ## Configure application ID
 
-**Multiple mobile apps:** If your Engagement project supports multiple mobile apps, specify the `applicationId` in your configuration. This helps distinguish between different apps in your project.
+**Multiple mobile apps:** If your {user.mkg} project supports multiple mobile apps, specify the `applicationId` in your configuration. This helps distinguish between different apps in your project.
 
 ```dart
 final configuration = ExponeaConfiguration(
@@ -270,6 +270,96 @@ final configuration = ExponeaConfiguration(
 applicationId: '<Your application id>',
 ...
 ```
-Make sure your `applicationId` value matches exactly Application ID configured in your Bloomreach Engagement under **Project Settings > Campaigns > Channels > Push Notifications.**
+Make sure your `applicationId` value matches exactly Application ID configured in your {user.mkg} under **Project Settings > Campaigns > Channels > Push Notifications.**
 
-**Single mobile app:** If your Engagement project supports only one app, you can skip the `applicationId` configuration. The SDK will automatically use the default value "default-application".
+**Single mobile app:** If your {user.mkg} project supports only one app, you can skip the `applicationId` configuration. The SDK will automatically use the default value "default-application".
+
+## Stream integration
+
+### SDK auth token authorization
+
+If you're using a `StreamIntegrationConfig` integration, the SDK uses JWT-based authentication through an SDK auth token for all authorized API calls.
+
+The SDK sends the JWT in `Authorization: Bearer <token>` format for Tracking and WebXP requests in Stream mode.
+
+> 📘
+>
+> `advancedAuthEnabled` and the native `AuthorizationProvider` pattern only apply to **Project** integrations. With Stream configuration, the SDK logs a warning and ignores `advancedAuthEnabled`.
+
+#### Set the SDK auth token
+
+You can set the SDK auth token in three ways:
+
+1. **During SDK initialization**, by including it in the `CustomerIdentity` passed as the optional `customerIdentifier` argument to `configure()`. For more details, see [Initialize with customer identity](https://documentation.bloomreach.com/engagement/docs/flutter-sdk-setup#initialize-with-customer-identity).
+
+2. **During customer identification**, by including it in the `CustomerIdentity` passed to `identifyCustomer()`:
+
+```dart
+await _plugin.identifyCustomer(
+  CustomerIdentity(
+    customerIds: {'registered': 'jane.doe@example.com'},
+    sdkAuthToken: 'your-jwt-token',
+  ),
+);
+```
+
+3. **Independently**, using the `setSdkAuthToken()` method:
+
+```dart
+await _plugin.setSdkAuthToken('your-jwt-token');
+```
+
+> ❗️
+>
+> Only the `StreamIntegrationConfig` integration supports `setSdkAuthToken`. Calling it with `ProjectIntegrationConfig` logs a warning and the call is ignored.
+
+#### Token storage
+
+The SDK stores the auth token persistently across app restarts. It clears the token automatically when `anonymize()` is called or when `identifyCustomer()` is called without a token.
+
+#### sdkAuthErrorStream
+
+Subscribe to `sdkAuthErrorStream` to be notified of authentication failures and provide fresh tokens. This is the Flutter equivalent of the React Native `setSdkAuthErrorCallback()` / `removeSdkAuthErrorCallback()` pair:
+
+```dart
+import 'dart:async';
+import 'package:exponea/exponea.dart';
+
+late StreamSubscription<SdkAuthError> _authSub;
+
+_authSub = _plugin.sdkAuthErrorStream.listen((error) async {
+  debugPrint('[Exponea] Auth error: ${error.errorCode}');
+  final newToken = await fetchNewTokenFromYourBackend(error.customerIds);
+  await _plugin.setSdkAuthToken(newToken);
+});
+
+// on sign-out / dispose:
+await _authSub.cancel();
+```
+
+Subscribe before `configure()` when possible, so you can immediately handle auth errors during SDK initialization. Cancel the subscription on sign-out, `anonymize()`, `stopIntegration()`, or widget dispose.
+
+The SDK holds the **last** auth error until a listener is attached (same behavior as push notification streams).
+
+The `SdkAuthError` object contains:
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| `errorCode` | `SdkAuthErrorCode` | One of `TOKEN_ABOUT_TO_EXPIRE`, `TOKEN_EXPIRED`, `TOKEN_REJECTED`, `TOKEN_NOT_PROVIDED`. iOS only: `TOKEN_INSUFFICIENT`. |
+| `customerIds` | `Map<String, String>` | The current customer IDs. |
+
+The `SdkAuthErrorCode` enum values and their meanings:
+
+| Value | Description |
+| ----- | ----------- |
+| `TOKEN_ABOUT_TO_EXPIRE` | The current token is approaching its expiration time. The SDK proactively requests a new token. |
+| `TOKEN_EXPIRED` | The current token has expired. The SDK requests a new token. |
+| `TOKEN_REJECTED` | The server rejected the token. The SDK requests a new token. |
+| `TOKEN_NOT_PROVIDED` | No token is set. The SDK can't make authorized requests. |
+| `TOKEN_INSUFFICIENT` | (iOS only) Reserved for future use. |
+
+On 401/403 responses the native SDK emits an auth error and retries the request after the host app supplies a new token via `setSdkAuthToken`.
+
+> ❗️
+>
+> The SDK assigns the auth token to the current customer IDs. If customer IDs change when you call `identifyCustomer` or `anonymize`, the SDK clears the token. Provide a new token for the new customer.

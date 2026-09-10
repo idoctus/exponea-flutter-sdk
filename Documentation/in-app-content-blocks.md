@@ -8,7 +8,7 @@ parent:
 content:
   excerpt: >-
     Display native in-app content blocks based on definitions set up in
-    Engagement using the Flutter SDK
+    Marketing using the Flutter SDK
 ---
 
 In-app content blocks provide a way to display campaigns within your mobile applications that seamlessly blend with the overall app design. Unlike [In-app messages for Flutter SDK](https://documentation.bloomreach.com/engagement/docs/flutter-sdk-in-app-messages) that appear as overlays or pop-ups demanding immediate attention, in-app content blocks display inline with the app's existing content.
@@ -17,13 +17,13 @@ You can strategically position placeholders for in-app content blocks within you
 
 > 📘
 >
-> Refer to the [In-app content blocks](https://documentation.bloomreach.com/engagement/docs/in-app-content-blocks) user guide for instructions on how to create in-app content blocks in Engagement.
+> Refer to the [In-app content blocks](https://documentation.bloomreach.com/engagement/docs/in-app-content-blocks) user guide for instructions on how to create in-app content blocks in {user.mkg}.
 
 ![In-app content blocks in the example app](https://raw.githubusercontent.com/exponea/exponea-flutter-sdk/main/Documentation/images/in-app-content-blocks.png)
 
 ## Integration
 
-You can integrate in-app content blocks by adding one or more placeholder views in your app. Each in-app content block must have a `Placeholder ID` specified in its [settings](https://documentation.bloomreach.com/engagement/docs/in-app-content-blocks#3-fill-the-settings) in Engagement. The SDK will display an in-app content block in the corresponding placeholder in the app if the current app user matches the target audience.
+You can integrate in-app content blocks by adding one or more placeholder views in your app. Each in-app content block must have a `Placeholder ID` specified in its [settings](https://documentation.bloomreach.com/engagement/docs/in-app-content-blocks#3-fill-the-settings) in {user.mkg}. The SDK will display an in-app content block in the corresponding placeholder in the app if the current app user matches the target audience.
 
 ### Add a placeholder view
 
@@ -43,7 +43,7 @@ After the SDK initializes (see [Initial setup for Flutter SDK](https://documenta
 
 > 👍
 >
-> Always us descriptive, human-readable placeholder IDs. They are tracked as an event property and can be used for analytics within Engagement.
+> Always us descriptive, human-readable placeholder IDs. They are tracked as an event property and can be used for analytics within {user.mkg}.
 
 ## Integration of a carousel view
 
@@ -69,7 +69,7 @@ InAppContentBlockCarousel(
 
 > 👍
 >
-> Always us descriptive, human-readable placeholder IDs. They are tracked as an event property and can be used for analytics within Engagement.
+> Always us descriptive, human-readable placeholder IDs. They are tracked as an event property and can be used for analytics within {user.mkg}.
 
 ## Tracking
 
@@ -199,8 +199,8 @@ InAppContentBlockCarousel(
 
 A carousel view filters available content blocks in the same way as a placeholder view:
 
-- The content block must meet the `Schedule` setting configured in the Engagement web app
-- The content block must meet the `Display` setting configured in the Engagement web app
+- The content block must meet the `Schedule` setting configured in the {user.mkg} web app
+- The content block must meet the `Display` setting configured in the {user.mkg} web app
 - The content must be valid and supported by the SDK
 
 The order in which content blocks are displayed is determined by:
@@ -213,6 +213,8 @@ You can implement additional filtration and sorting by registering your own `fil
 ```dart
 InAppContentBlockCarousel(
   placeholderId: 'example_carousel',
+  // The SDK waits up to 500 ms for each custom filter or sort result.
+  responseTimeoutMillis: 500,
   filterContentBlocks: (contentBlocks) {
     // if you want keep default filtration, do not register this method
     // you can add your own filtration, for example ignore any item named "discarded"
@@ -229,6 +231,10 @@ InAppContentBlockCarousel(
 > ❗️
 >
 > A carousel view accepts the results from the filtration and sorting implementations. Ensure that you return all wanted items as result from your implementations to avoid any missing items.
+
+> 📘
+>
+> The SDK waits up to 250 milliseconds by default for each custom filtration or sorting result. Set `responseTimeoutMillis` to adjust this per carousel. Non-positive values use the default timeout and log a warning.
 
 > ❗️
 >
@@ -266,7 +272,7 @@ This section provides helpful pointers for troubleshooting in-app content block 
 ### In-app content block not displayed
 
 - The SDK can only display an in-app content block after it has been fully loaded (including its content, any images, and its height). Therefore, the in-app content block may only show in the app after a delay.
-- Always ensure that the placeholder IDs in the in-app content block configuration (in the Engagement web app) and in your mobile app match.
+- Always ensure that the placeholder IDs in the in-app content block configuration (in the {user.mkg} web app) and in your mobile app match.
 
 ### In-app content block shows incorrect image
 

@@ -8,7 +8,10 @@ abstract class BaseInterface {
   /// Should only be called once.
   /// You need to configure ExponeaSDK before calling most methods.
   /// Returns true if configuration was successful. Returns false if sdk was already configured.
-  Future<bool> configure(ExponeaConfiguration configuration);
+  Future<bool> configure(
+    ExponeaConfiguration configuration, {
+    CustomerIdentifier? customerIdentifier,
+  });
 
   /// Check whether Exponea SDK is configured.
   Future<bool> isConfigured();
@@ -50,15 +53,48 @@ abstract class BaseInterface {
   /// Push token is cleared on Exponea backend.
   /// Optionally changes default Exponea project and event-project mapping.
   Future<void> anonymize([
-    ExponeaConfigurationChange configurationChange =
+    ConfigurationChange configurationChange =
         const ExponeaConfigurationChange(),
   ]);
 
   /// Identify current customer with new customer ids and properties.
-  Future<void> identifyCustomer(Customer customer);
+  Future<void> identifyCustomer(
+    CustomerIdentifier identifier, {
+    Map<String, dynamic>? properties,
+  });
+
+  /// Updates the active JWT token used for stream-mode API authentication.
+  /// Token is required; clear via [anonymize] or [stopIntegration].
+  /// Ignored when not using a Stream integration.
+  Future<void> setSdkAuthToken(String token);
+
+  /// A stream of SDK auth errors (token about to expire, expired, rejected, etc.).
+  /// The SDK will hold last data until you set the listener.
+  /// Don't forget to call cancel on the subscription when no longer listening.
+  Stream<SdkAuthError> get sdkAuthErrorStream;
 
   /// Flush data to Exponea backend.
-  /// Only usable in [FlushMode.manual].
+  ///
+  /// Can be called in any [FlushMode]; switching to [FlushMode.manual] is not required.
+  /// The returned [Future] completes after the native flush of pending events
+  /// (including any queued customer identify) has finished uploading to the backend.
+  /// Caches that are re-fetched in reaction to those uploads (for example in-app
+  /// messages) are refreshed asynchronously and may not be fully populated when the
+  /// future resolves; in normal conditions this happens shortly after. Awaiting the
+  /// future is therefore the recommended way to sequence operations whose evaluation
+  /// depends on the just-uploaded customer state (for example [trackSessionStart]).
+  ///
+  /// The future may complete with a [PlatformException] on native flush failure
+  /// (e.g. no internet connection, SDK stopped, or — on iOS only — the internal
+  /// flush-already-in-progress retry budget of ~2 s is exhausted). Wrap awaiting
+  /// callers in `try`/`catch` to handle these cases. For fire-and-forget callers
+  /// that do not need to handle errors, attach an error handler before dropping
+  /// the future with `unawaited` from `dart:async`:
+  ///
+  /// ```dart
+  /// import 'dart:async';
+  /// unawaited(ExponeaPlugin().flushData().catchError((_) {}));
+  /// ```
   Future<void> flushData();
 
   /// Track custom event to Exponea backend.

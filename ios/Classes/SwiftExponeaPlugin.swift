@@ -11,12 +11,14 @@ private let openedPushStreamName = "\(channelName)/opened_push"
 private let receivedPushStreamName = "\(channelName)/received_push"
 private let inAppMessagesStreamName = "\(channelName)/in_app_messages"
 private let segmentationDataStreamName = "\(channelName)/segmentation_data"
+private let sdkAuthStreamName = "\(channelName)/sdk_auth"
 
 enum METHOD_NAME: String {
     case methodConfigure = "configure"
     case methodIsConfigured = "isConfigured"
     case methodGetCustomerCookie = "getCustomerCookie"
     case methodIdentifyCustomer = "identifyCustomer"
+    case methodSetSdkAuthToken = "setSdkAuthToken"
     case methodAnonymize = "anonymize"
     case methodGetDefaultProperties = "getDefaultProperties"
     case methodSetDefaultProperties = "setDefaultProperties"
@@ -87,7 +89,7 @@ protocol IsExponeaFlutterSDK {
 public class ExponeaFlutterVersion: NSObject, ExponeaVersionProvider {
     required public override init() { }
     public func getVersion() -> String {
-        "2.7.0"
+        "3.0.0"
     }
 }
 
@@ -149,7 +151,7 @@ public class FlutterInAppContentBlockPlaceholderFactory: NSObject, FlutterPlatfo
 public class FlutterInAppContentBlockPlaceholder: NSObject, FlutterPlatformView {
     
     private let channelName = "com.exponea/InAppContentBlockPlaceholder"
-    private let methodHandleInAppContentBlockClick = "handleInAppContentBlockClick"
+    private let methodOnInAppContentBlockEvent = "onInAppContentBlockEvent"
     
     private let inAppContentBlockPlaceholder: StaticInAppContentBlockView?
     private let placeholderId: String
@@ -173,37 +175,25 @@ public class FlutterInAppContentBlockPlaceholder: NSObject, FlutterPlatformView 
             let messenger {
             channel = FlutterMethodChannel(name: "\(channelName)/\(viewId)", binaryMessenger: messenger)
             guard let channel else { return }
-            channel.setMethodCallHandler(onMethodCall)
             
             let origBehaviour = inAppContentBlockPlaceholder.behaviourCallback
             inAppContentBlockPlaceholder.behaviourCallback = CustomInAppContentBlockCallback(originalBehaviour: origBehaviour, overrideOriginalBehaviour: overrideDefaultBehavior, channel: channel)
+            inAppContentBlockPlaceholder.heightCompletion = { [weak self] height in
+                self?.sendHeightUpdate(height)
+            }
             inAppContentBlockPlaceholder.reload()
         }
     }
     
-    func onMethodCall(call : FlutterMethodCall, result: @escaping FlutterResult) {
-        switch call.method {
-        case methodHandleInAppContentBlockClick:
-            if inAppContentBlockPlaceholder == nil {
-                result(FlutterError(
-                    code: "InAppCB",
-                    message: "Handling of url was invoked even when InAppCB is not initialized", details: nil
-                ))
-                return
-            }
-            guard let data = call.arguments as? NSDictionary,
-                  let actionUrl: String = try? data.getRequiredSafely(property: "actionUrl") else {
-                result(FlutterError(
-                    code: "InAppCB",
-                    message: "unable to parse action URL ", details: nil
-                ))
-                return
-            }
-            inAppContentBlockPlaceholder?.invokeActionClick(actionUrl:actionUrl)
-        default:
-            let error = FlutterError(code: errorCode, message: "\(call.method) is not supported by iOS", details: nil)
-            result(error)
-            return
+    private func sendHeightUpdate(_ height: Int) {
+        let payload: [String: Any] = [
+            "eventType": "onHeightUpdate",
+            "placeholderId": placeholderId,
+            "height": height
+        ]
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.channel?.invokeMethod(self.methodOnInAppContentBlockEvent, arguments: payload)
         }
     }
     
@@ -219,7 +209,6 @@ public class CustomInAppContentBlockCallback: InAppContentBlockCallbackType {
     
     private let channel: FlutterMethodChannel
     private let methodOnInAppContentBlockEvent = "onInAppContentBlockEvent"
-    private let methodOnInAppContentBlockHtmlChanged = "onInAppContentBlockHtmlChanged"
     
     init(originalBehaviour: InAppContentBlockCallbackType, overrideOriginalBehaviour: Bool, channel: FlutterMethodChannel) {
         self.originalBehaviour = originalBehaviour
@@ -230,13 +219,6 @@ public class CustomInAppContentBlockCallback: InAppContentBlockCallbackType {
     public func onMessageShown(placeholderId: String, contentBlock: ExponeaSDK.InAppContentBlockResponse) {
         if !overrideOriginalBehaviour {
             originalBehaviour.onMessageShown(placeholderId: placeholderId, contentBlock: contentBlock)
-        }
-        let htmlContent = contentBlock.content?.html ?? contentBlock.personalizedMessage?.content?.html
-        let normalizerConf = HtmlNormalizerConfig(makeResourcesOffline: true, ensureCloseButton: false)
-        if let htmlContent,
-            var normalizedHtml = HtmlNormalizer(htmlContent).normalize(normalizerConf).html {
-            let arguments: [String: Any?] = ["htmlContent": normalizedHtml]
-            invokeMethod(method: methodOnInAppContentBlockHtmlChanged, arguments: arguments)
         }
         let payload: [String: Any?] = [
             "eventType": "onMessageShown",
@@ -250,8 +232,6 @@ public class CustomInAppContentBlockCallback: InAppContentBlockCallbackType {
         if !overrideOriginalBehaviour {
             originalBehaviour.onNoMessageFound(placeholderId: placeholderId)
         }
-        let arguments: [String: Any?] = ["htmlContent": nil]
-        invokeMethod(method: methodOnInAppContentBlockHtmlChanged, arguments: arguments)
         let payload: [String: Any?] = [
             "eventType": "onNoMessageFound",
             "placeholderId": placeholderId
@@ -303,6 +283,7 @@ public class CustomInAppContentBlockCallback: InAppContentBlockCallbackType {
 
     private func invokeMethod(method: String, arguments: [String: Any?]) {
         DispatchQueue.main.async {
+            guard EngineDeliveryGuard.isSafeToDeliver() else { return }
             self.channel.invokeMethod(method, arguments: arguments)
         }
     }
@@ -327,14 +308,21 @@ public class SwiftExponeaPlugin: NSObject, FlutterPlugin {
         let segmentationDataChannel = FlutterEventChannel(name: segmentationDataStreamName, binaryMessenger: registrar.messenger())
         segmentationDataChannel.setStreamHandler(SegmentationDataStreamHandler.newInstance())
 
+        let sdkAuthEventChannel = FlutterEventChannel(name: sdkAuthStreamName, binaryMessenger: registrar.messenger())
+        sdkAuthEventChannel.setStreamHandler(SdkAuthStreamHandler.newInstance())
+
         registrar.register(FluffViewFactory(), withId: "FluffView")
         registrar.register(FlutterInAppContentBlockPlaceholderFactory(messenger: registrar.messenger()), withId: "InAppContentBlockPlaceholder")
         registrar.register(FlutterAppInboxDetailViewFactory(), withId: "AppInboxDetailView")
         registrar.register(FlutterAppInboxListViewFactory(messenger: registrar.messenger()), withId: "AppInboxListView")
         registrar.register(FlutterInAppContentBlockCarouselFactory(messenger: registrar.messenger()), withId: "InAppContentBlockCarousel")
+        // Intentionally kept for apps that have not migrated to UIScene; Flutter recommends plugins
+        // remain registered as application delegates even when adopting scene lifecycle.
+        registrar.addApplicationDelegate(instance)
+        registrar.addSceneDelegate(instance)
     }
 
-    var exponeaInstance: ExponeaType = ExponeaSDK.Exponea.shared
+    lazy var exponeaInstance: ExponeaType = ExponeaSDK.Exponea.shared
     var segmentationDataCallbacks: [FlutterSegmentationDataCallback] = []
 
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
@@ -352,6 +340,8 @@ public class SwiftExponeaPlugin: NSObject, FlutterPlugin {
             getCustomerCookie(with: result)
         case .methodIdentifyCustomer:
             identifyCustomer(call.arguments, with: result)
+        case .methodSetSdkAuthToken:
+            setSdkAuthToken(call.arguments, with: result)
         case .methodAnonymize:
             anonymize(call.arguments, with: result)
         case .methodGetDefaultProperties:
@@ -1105,13 +1095,19 @@ public class SwiftExponeaPlugin: NSObject, FlutterPlugin {
     }
     
     private func unregisterSegmentationDataStream(_ args: Any?, with result: FlutterResult) {
-        guard requireConfigured(with: result) else { return }
         guard let params = args as? [String: Any],
               let instanceId = params["instanceId"] as? String else {
             result(FlutterError(code: errorCode, message: "Invalid arguments for unregisterSegmentationDataStream", details: nil))
             return
         }
-        
+        // Unregistering after the SDK has been stopped (e.g. stream teardown triggered by
+        // disposing widgets after stopIntegration) is a no-op rather than an error.
+        guard exponeaInstance.isConfigured else {
+            segmentationDataCallbacks.removeAll { $0.instanceId == instanceId }
+            result(nil)
+            return
+        }
+
         if let callbackToRemove = segmentationDataCallbacks.first(where: { $0.instanceId == instanceId }) {
             SegmentationManager.shared.removeCallback(callbackData: callbackToRemove.nativeCallback)
             segmentationDataCallbacks.removeAll { $0.instanceId == instanceId }
@@ -1148,14 +1144,17 @@ public class SwiftExponeaPlugin: NSObject, FlutterPlugin {
             let data = args as! [String:Any?]
             let parser = ConfigurationParser()
             let config = try parser.parseConfig(data)
+            let customerIdentity = parser.parseCustomerIdentity(
+                data["customerIdentity"] as? [String: Any?]
+            )
 
-            if config.regenerateDeviceIdOnAnonymize == true {
-                let sdkConfiguration = try parser.buildSdkConfiguration(config, data: data)
-                exponeaInstance.configure(with: sdkConfiguration, authContext: nil)
+            if customerIdentity != nil || config.regenerateDeviceIdOnAnonymize == true {
+                let nativeConfiguration = try parser.parseConfiguration(config, data: data)
+                exponeaInstance.configure(with: nativeConfiguration, authContext: customerIdentity)
                 exponeaInstance.flushingMode = .immediate
             } else {
                 exponeaInstance.configure(
-                    config.projectSettings,
+                    config.integrationConfig,
                     pushNotificationTracking: config.pushNotificationTracking,
                     automaticSessionTracking: config.automaticSessionTracking,
                     defaultProperties: config.defaultProperties,
@@ -1169,15 +1168,19 @@ public class SwiftExponeaPlugin: NSObject, FlutterPlugin {
             }
             // Apply an initial flush mode right after configure so the first
             // auto-tracked events (installation/session_start) stay buffered
-            // until the first manual flush, instead of being flushed.
+            // until the first manual flush, instead of being flushed. Both
+            // configure paths above land on .immediate (the native parser
+            // hardcodes it), so this override has to come after them.
             if let modeStr = data["flushMode"] as? String, modeStr == "MANUAL" {
                 exponeaInstance.flushingMode = .manual
             }
+
             if (!exponeaInstance.isConfigured) {
                 result(FlutterError(code: errorCode, message: ExponeaError.configurationError.errorDescription, details: nil))
             } else {
                 exponeaInstance.pushNotificationsDelegate = self
                 exponeaInstance.inAppMessagesDelegate = InAppMessageActionStreamHandler.currentInstance
+                registerSdkAuthErrorHandler()
                 result(true)
             }
         } catch {
@@ -1199,8 +1202,30 @@ public class SwiftExponeaPlugin: NSObject, FlutterPlugin {
         guard requireConfigured(with: result) else { return }
         do {
             let data = args as! [String:Any?]
-            let customer = try ExponeaCustomer(data)
-            exponeaInstance.identifyCustomer(customerIds: customer.ids, properties: customer.properties, timestamp: nil)
+            let parser = ConfigurationParser()
+            let identity: ExponeaSDK.CustomerIdentity
+            let properties: [String: JSONConvertible]
+
+            if data["customerIds"] != nil {
+                guard let parsedIdentity = parser.parseCustomerIdentity(data) else {
+                    throw ExponeaDataError.invalidValue(for: "customerIds")
+                }
+                identity = parsedIdentity
+                properties = try parser.parseIdentifyProperties(data["properties"])
+            } else {
+                let customer = try ExponeaCustomer(data)
+                identity = ExponeaSDK.CustomerIdentity(
+                    customerIds: customer.ids,
+                    jwtToken: nil
+                )
+                properties = customer.properties
+            }
+
+            exponeaInstance.identifyCustomer(
+                context: identity,
+                properties: properties,
+                timestamp: nil
+            )
             result(nil)
         } catch {
             let error = FlutterError(code: errorCode, message: error.localizedDescription, details: nil)
@@ -1208,18 +1233,56 @@ public class SwiftExponeaPlugin: NSObject, FlutterPlugin {
         }
     }
 
-    private func anonymize(_ args: Any?, with result: FlutterResult) {
+    private func setSdkAuthToken(_ args: Any?, with result: FlutterResult) {
+        guard requireConfigured(with: result) else { return }
+        let data = args as! [String: Any?]
+        guard let token = data["token"] as? String else {
+            result(FlutterError(
+                code: errorCode,
+                message: "setSdkAuthToken requires a non-null token.",
+                details: nil
+            ))
+            return
+        }
+        exponeaInstance.setSdkAuthToken(token)
+        result(nil)
+    }
+
+    private func registerSdkAuthErrorHandler() {
+        exponeaInstance.setJwtErrorHandler { context in
+            let customerIds = (context.customerIds ?? [:]).reduce(into: [String: String]()) { result, item in
+                result[String(describing: item.key)] = item.value
+            }
+            let error = SdkAuthError(
+                errorCode: SdkAuthErrorReasonMapper.map(context.reason),
+                customerIds: customerIds
+            )
+            _ = SdkAuthStreamHandler.handle(error: error)
+        }
+    }
+
+    private func anonymize(_ args: Any?, with result: @escaping FlutterResult) {
         guard requireConfigured(with: result) else { return }
         do {
             let data = args as! [String:Any?]
             let parser = ConfigurationParser()
-            let change = try parser.parseConfigChange(data, defaultBaseUrl: exponeaInstance.configuration!.baseUrl)
-            if let project = change.project {
-                exponeaInstance.anonymize(exponeaProject: project, projectMapping: change.mapping)
-            } else {
-                exponeaInstance.anonymize()
+            let change = try parser.parseConfigurationChangePayload(data)
+            switch change {
+            case .legacy(let configChange):
+                if let project = configChange.project {
+                    Exponea.shared.anonymize(
+                        exponeaIntegrationType: project,
+                        exponeaProjectMapping: configChange.mapping
+                    ) { result(nil) }
+                } else {
+                    exponeaInstance.anonymize(completion: { result(nil) })
+                }
+            case .integration(let integrationConfig, let integrationRouteMap):
+                Exponea.shared.anonymize(
+                    exponeaIntegrationType: integrationConfig,
+                    exponeaProjectMapping: integrationRouteMap
+                ) { result(nil) }
             }
-            result(nil)
         } catch {
             let error = FlutterError(code: errorCode, message: error.localizedDescription, details: nil)
             result(error)
@@ -1246,28 +1309,71 @@ public class SwiftExponeaPlugin: NSObject, FlutterPlugin {
 
     private func flush(with result: @escaping FlutterResult) {
         guard requireConfigured(with: result) else { return }
-        // NOTE: forwarded the native flushData(completion:) callback to the
-        // Flutter Result so the Future resolves once the events queue has
-        // been uploaded to the backend, not before. Upstream silently
-        // discards the completion (`exponeaInstance.flushData()` with no
-        // args), which makes it impossible to await `identifyCustomer`'s
-        // TRACK_CUSTOMER round-trip from Dart — the SDK only refreshes
-        // the in-app messages cache after that upload, so anything
-        // depending on the cache being populated needs this Future to
-        // actually wait.
-        exponeaInstance.flushData { flushResult in
-            DispatchQueue.main.async {
-                switch flushResult {
-                case .success, .flushAlreadyInProgress, .noInternetConnection:
-                    result(nil)
-                case .error(let error):
-                    result(FlutterError(
-                        code: "ExponeaPlugin",
-                        message: error.localizedDescription,
-                        details: nil
-                    ))
+        Self.awaitFlushCompletion(
+            flushOperation: { [weak self] completion in
+                guard let self = self else {
+                    completion(.error(NSError(
+                        domain: "ExponeaPlugin",
+                        code: 0,
+                        userInfo: [NSLocalizedDescriptionKey: "Plugin deallocated during flush retry."]
+                    )))
+                    return
+                }
+                self.exponeaInstance.flushData(completion: completion)
+            },
+            attemptsRemaining: Self.flushInProgressMaxRetries,
+            retryDelay: Self.flushInProgressRetryDelay,
+            onComplete: { flushResult in
+                DispatchQueue.main.async {
+                    switch flushResult {
+                    case .success:
+                        result(nil)
+                    case .flushAlreadyInProgress:
+                        result(FlutterError(
+                            code: errorCode,
+                            message: "Flush already in progress; retry budget exhausted.",
+                            details: nil
+                        ))
+                    case .noInternetConnection:
+                        result(FlutterError(
+                            code: errorCode,
+                            message: "No internet connection while flushing.",
+                            details: nil
+                        ))
+                    case .error(let error):
+                        result(FlutterError(
+                            code: errorCode,
+                            message: error.localizedDescription,
+                            details: nil
+                        ))
+                    }
                 }
             }
+        )
+    }
+
+    internal static let flushInProgressMaxRetries: Int = 20
+    internal static let flushInProgressRetryDelay: DispatchTimeInterval = .milliseconds(100)
+
+    internal static func awaitFlushCompletion(
+        flushOperation: @escaping (@escaping (FlushResult) -> Void) -> Void,
+        attemptsRemaining: Int,
+        retryDelay: DispatchTimeInterval,
+        onComplete: @escaping (FlushResult) -> Void
+    ) {
+        flushOperation { flushResult in
+            if case .flushAlreadyInProgress = flushResult, attemptsRemaining > 0 {
+                DispatchQueue.main.asyncAfter(deadline: .now() + retryDelay) {
+                    awaitFlushCompletion(
+                        flushOperation: flushOperation,
+                        attemptsRemaining: attemptsRemaining - 1,
+                        retryDelay: retryDelay,
+                        onComplete: onComplete
+                    )
+                }
+                return
+            }
+            onComplete(flushResult)
         }
     }
 
@@ -1458,10 +1564,9 @@ public class SwiftExponeaPlugin: NSObject, FlutterPlugin {
         return true
     }
 
-    private func stopIntegration(with result: FlutterResult) {
+    private func stopIntegration(with result: @escaping FlutterResult) {
         guard requireConfigured(with: result) else { return }
-        exponeaInstance.stopIntegration()
-        result(nil)
+        exponeaInstance.stopIntegration(completion: { result(nil) })
     }
 
     private func clearLocalCustomerData(_ args: Any?, with result: FlutterResult) {
@@ -1510,6 +1615,11 @@ extension SwiftExponeaPlugin: PushNotificationManagerDelegate {
     }
 
     @objc
+    public static func setUserNotificationCenterDelegate(_ delegate: UNUserNotificationCenterDelegate) {
+        UNUserNotificationCenter.current().delegate = delegate
+    }
+
+    @objc
     public static func handlePushNotificationToken(deviceToken: Data) {
         ExponeaSDK.Exponea.shared.handlePushNotificationToken(deviceToken: deviceToken)
     }
@@ -1530,6 +1640,44 @@ extension SwiftExponeaPlugin: PushNotificationManagerDelegate {
             let incomingURL = userActivity.webpageURL
             else { return }
         ExponeaSDK.Exponea.shared.trackCampaignClick(url: incomingURL, timestamp: nil)
+    }
+
+    static func browsingWebUserActivity(from userActivities: Set<NSUserActivity>) -> NSUserActivity? {
+        userActivities.first(where: {
+            $0.activityType == NSUserActivityTypeBrowsingWeb && $0.webpageURL != nil
+        })
+    }
+}
+
+extension SwiftExponeaPlugin: FlutterSceneLifeCycleDelegate {
+    // Handles Universal Links delivered on cold launch via UIScene connection options.
+    public func scene(
+        _ scene: UIScene,
+        willConnectTo session: UISceneSession,
+        options connectionOptions: UIScene.ConnectionOptions?
+    ) -> Bool {
+        if let userActivity = SwiftExponeaPlugin.browsingWebUserActivity(
+            from: connectionOptions?.userActivities ?? []
+        ) {
+            SwiftExponeaPlugin.continueUserActivity(userActivity)
+        }
+        return false
+    }
+
+    // Handles Universal Links delivered on warm launch (app already running in background).
+    // Returns false after tracking so Flutter can still run handleDeeplink and other plugins
+    // can receive the activity (returning true would consume the event).
+    public func scene(_ scene: UIScene, continue userActivity: NSUserActivity) -> Bool {
+        guard userActivity.activityType == NSUserActivityTypeBrowsingWeb,
+              userActivity.webpageURL != nil else {
+            return false
+        }
+        SwiftExponeaPlugin.continueUserActivity(userActivity)
+        return false
+    }
+
+    public func sceneDidDisconnect(_ scene: UIScene) {
+        EngineDeliveryGuard.detachStreamHandlersFromEngine()
     }
 }
 

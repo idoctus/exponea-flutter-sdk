@@ -13,7 +13,7 @@ The Flutter SDK relies on the native iOS SDK to handle push notifications on iOS
 
 > 👍
 >
-> The SDK provides a push setup self-check feature to help developers successfully set up push notifications. The self-check will try to track the push token, request the Engagement backend to send a silent push to the device, and check if the app is ready to open push notifications.
+> The SDK provides a push setup self-check feature to help developers successfully set up push notifications. The self-check will try to track the push token, request the {user.mkg} backend to send a silent push to the device, and check if the app is ready to open push notifications.
 >
 > To enable the setup check, call `ExponeaPlugin().checkPushSetup()` **before** [initializing the SDK](https://documentation.bloomreach.com/engagement/docs/flutter-sdk-setup#initialize-the-sdk):
 
@@ -27,10 +27,10 @@ The Flutter SDK relies on the native iOS SDK to handle push notifications on iOS
 
 ## Prerequisites
 
-To be able to send push notifications to iOS devices from Engagement, you must:
+To be able to send push notifications to iOS devices from {user.mkg}, you must:
 
 - Obtain an Apple Push Notification service (APNs) authentication token signing key
-- Add and configure the Apple Push Notification Service integration in the Engagement web app
+- Add and configure the Apple Push Notification Service integration in the {user.mkg} web app
 
 > 📘
 >
@@ -72,20 +72,25 @@ import Foundation
 import Flutter
 import exponea
 
-@UIApplicationMain
-@objc class AppDelegate: ExponeaFlutterAppDelegate {
+@main
+@objc class AppDelegate: ExponeaFlutterAppDelegate, FlutterImplicitEngineDelegate {
 
-    override func application(
-        _ application: UIApplication,
-        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
-    ) -> Bool {
-        GeneratedPluginRegistrant.register(with: self)
-        return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+    func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
+        GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
     }
 }
 ```
 
-If, for some reason, you don't want to or are not able to extend `ExponeaFlutterAppDelegate`, you can use it as a reference for implementing the required delegate methods yourself.
+> ❗️
+>
+> When adopting the UIScene lifecycle (Flutter 3.38+), you must:
+> 1. Extend `ExponeaFlutterAppDelegate` — push notification delegate setup is automatic unless you override `application(_:didFinishLaunchingWithOptions:)`. If you override it, call `configurePushNotificationDelegate()` at the start of your override, before `super`, so the push notification delegate is configured before launch returns. If you don't extend `ExponeaFlutterAppDelegate`, call `SwiftExponeaPlugin.setUserNotificationCenterDelegate(yourDelegate)` at the start of `application(_:didFinishLaunchingWithOptions:)` instead.
+> 2. Add `FlutterImplicitEngineDelegate` conformance to your `AppDelegate` and move `GeneratedPluginRegistrant.register` to `didInitializeImplicitFlutterEngine` — calling `GeneratedPluginRegistrant.register(with: self)` in `application:didFinishLaunchingWithOptions:` doesn't work in UIScene mode.
+> 3. Add a `UIApplicationSceneManifest` entry to your `Info.plist` with `UISceneDelegateClassName` set to `FlutterSceneDelegate`.
+>
+> Refer to Flutter's [UISceneDelegate adoption guide](https://docs.flutter.dev/release/breaking-changes/uiscenedelegate) for full migration instructions, and to the [Flutter SDK version update guide](version-update.md#update-to-version-300-or-higher) for the complete Exponea SDK 3.0.0+ checklist.
+
+If you don't want to or are not able to extend `ExponeaFlutterAppDelegate`, use it as a reference for implementing the required delegate methods yourself.
 
 ### Step 3: Configure app group
 
@@ -121,7 +126,7 @@ _plugin.requestPushAuthorization()
 
 ### Checklist:
 
- - [ ] Engagement should now be able to send push notifications to iOS devices. Refer to the [Creating a new notification](https://documentation.bloomreach.com/engagement/docs/mobile-push-notifications#creating-a-new-notification) guide for instructions.
+ - [ ] {user.mkg} should now be able to send push notifications to iOS devices. Refer to the [Creating a new notification](https://documentation.bloomreach.com/engagement/docs/mobile-push-notifications#creating-a-new-notification) guide for instructions.
  - [ ] At this point, your app doesn't show images or actions in push notifications. Follow the instructions to implement [rich push notifications](#rich-push-notifications) if you want to support this.
 
 ## Customization
@@ -137,7 +142,7 @@ For each extension, follow the instructions in [Notification Extensions](https:/
 Calling the `ExponeaNotificationContentService.didReceive()` method will enhance the notification body with the image and actions delivered within the `UNNotification` payload. Notification actions shown by `ExponeaNotificationContentService` are registered with configurations to open your application with required information and handle campaign clicks automatically.
 
 #### Checklist:
- - [ ] Check that push notifications with images and buttons sent from Engagement are correctly displayed on your device. Push delivery tracking should work.
+ - [ ] Check that push notifications with images and buttons sent from {user.mkg} are correctly displayed on your device. Push delivery tracking should work.
  - [ ] If you don't see buttons in the expanded push notification, the content extension is **not** running. Double check `UNNotificationExtensionCategory` in `Info.plist` - notice the placement inside `NSExtensionAttributes`. Check that the `iOS Deployment Target` is the same for the extensions and the main app.
 
 ### Retrieve push notification token manually

@@ -11,9 +11,46 @@ content:
 
 This guide will help you upgrade your Exponea SDK to the new version.
 
+## Update to version 3.0.0 or higher
+
+Version 3.0.0 adds **Stream ({user.dh}) integration** and **JWT authentication** for the Tracking API Security feature, and adopts the UIScene lifecycle. Apple introduced a UIScene adoption warning in iOS 26 and will enforce it as a hard requirement in iOS 27.
+
+### 1. Dart and Flutter version requirements
+
+* **Flutter:** 3.38.0 or higher (`flutter upgrade`)
+* **Dart:** 3.10.0 or higher (`sdk: '>=3.10.0 <4.0.0'`)
+
+Apps on an older Flutter/Dart toolchain must upgrade before updating the SDK. Refer to the [Flutter upgrade guide](https://docs.flutter.dev/release/upgrade) and [Dart 3 migration guide](https://dart.dev/resources/dart-3-migration) if needed.
+
+### 2. UIScene lifecycle adoption
+
+Follow Flutter's [UISceneDelegate adoption guide](https://docs.flutter.dev/release/breaking-changes/uiscenedelegate) to update your iOS app:
+
+- Extend `ExponeaFlutterAppDelegate` — push notification delegate setup is automatic unless you override `application(_:didFinishLaunchingWithOptions:)`. If you override it, call `configurePushNotificationDelegate()` at the start of your override, before `super`. If you use a custom `AppDelegate` that doesn't extend `ExponeaFlutterAppDelegate`, call `SwiftExponeaPlugin.setUserNotificationCenterDelegate(_:)` at the start of `application(_:didFinishLaunchingWithOptions:)` instead.
+- Add `FlutterImplicitEngineDelegate` conformance to your `AppDelegate` and move `GeneratedPluginRegistrant.register` to `didInitializeImplicitFlutterEngine`.
+- Remove any `GeneratedPluginRegistrant.register(with: self)` call from `application(_:didFinishLaunchingWithOptions:)`.
+- Add a `UIApplicationSceneManifest` entry to your `Info.plist` with `UISceneDelegateClassName` set to `FlutterSceneDelegate`.
+
+For Universal Links only: if you use `ExponeaFlutterAppDelegate`, no further SDK-specific changes are required — the SDK tracks Universal Links under the UIScene lifecycle automatically via `FlutterSceneLifeCycleDelegate`. If you use a fully custom `AppDelegate` / `SceneDelegate` that doesn't extend `ExponeaFlutterAppDelegate` or forward Flutter scene lifecycle events, refer to the [Universal Links documentation](app-links.md) for manual forwarding instructions.
+
+### 3. New configuration and auth APIs (optional migration)
+
+Existing **Project** integrations continue to work without code changes. Legacy flat configuration fields (`projectToken`, `authorizationToken`, `baseUrl`, `projectMapping`) still work but emit deprecation warnings.
+
+To adopt the new API surface (recommended for new Stream integrations):
+
+| Legacy | Preferred |
+| ------ | --------- |
+| Flat `projectToken` / `authorizationToken` / `baseUrl` | `integrationConfig: ProjectIntegrationConfig(...)` |
+| `projectMapping` | `integrationRouteMap` with `ProjectIntegrationConfig` |
+| `ExponeaConfigurationChange` in `anonymize()` | `IntegrationConfigurationChange` |
+| `Customer` only in `identifyCustomer()` | `CustomerIdentity` for Stream mode with JWT |
+
+For **Stream mode**, see [Configuration](https://documentation.bloomreach.com/engagement/docs/flutter-sdk-configuration#integration-modes), [SDK auth token authorization](https://documentation.bloomreach.com/engagement/docs/flutter-sdk-authorization#sdk-auth-token-authorization), and [Initialize with customer identity](https://documentation.bloomreach.com/engagement/docs/flutter-sdk-setup#initialize-with-customer-identity).
+
 ## Update to version 2.3.0 or higher
 
-SDK versions 2.3.0 and higher support multiple mobile applications within a single Bloomreach Engagement project.
+SDK versions 2.3.0 and higher support multiple mobile applications within a single {user.mkg} project.
 
 This update introduces two major changes:
 
@@ -23,7 +60,7 @@ Each mobile application integrated with the SDK can now have its own unique `app
 
 **When to configure Application ID:**
 
-- **Multiple mobile apps:** You must specify a unique `applicationId` for each app in the SDK configuration. The value must match the Application ID configured in Bloomreach Engagement under **Project Settings > Campaigns > Channels > Push Notifications.**
+- **Multiple mobile apps:** You must specify a unique `applicationId` for each app in the SDK configuration. The value must match the Application ID configured in {user.mkg} under **Project Settings > Campaigns > Channels > Push Notifications.**
 - **Single mobile app:** If you use only one mobile application, you don't need to set `applicationId`. The SDK uses the default value `default-application` automatically.
 
 Learn more about [Configuration for Flutter SDK](https://documentation.bloomreach.com/engagement/docs/flutter-sdk-configuration) and [Initial setup for Flutter SDK](https://documentation.bloomreach.com/engagement/docs/flutter-sdk-setup#configure-application-id).
